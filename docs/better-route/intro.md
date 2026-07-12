@@ -7,10 +7,10 @@ sidebar_position: 1
 
 ## Status
 
-- Baseline documentation target: `v0.6.0`
-- Latest release: [`v0.6.0`](release-notes/v0.6.0)
-- Previous release: [`v0.5.0`](release-notes/v0.5.0)
-- Packagist/package index release: not published yet — install via VCS repository
+- Baseline documentation target: `v1.0.0`
+- Latest release: [`v1.0.0`](release-notes/v1.0.0)
+- Previous release: [`v0.6.0`](release-notes/v0.6.0)
+- Packagist: published — `composer require better-route/better-route:^1.0`
 
 ## What you get
 

@@ -18,25 +18,15 @@ Aligned with the **v0.6.0** release. See [Release Notes — v0.6.0](release-note
 - OpenSSL extension (for `Rs256JwksJwtVerifier` — v0.6.0)
 
 **Steps:**
-1. The package is not on Packagist yet. It must be installed via VCS repository pointing to GitHub.
-2. Add the repository and require the package in `composer.json`.
-3. Run `composer install` or `composer update`.
+1. The package is published on Packagist (since v1.0.0) — install it directly, no repository entry needed.
+2. Run `composer require better-route/better-route:^1.0`.
 
-**composer.json:**
-```json
-{
-  "require": {
-    "better-route/better-route": "^0.6.0"
-  },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/Lonsdale201/better-route"
-    }
-  ],
-  "prefer-stable": true
-}
+**Install:**
+```bash
+composer require better-route/better-route:^1.0
 ```
+
+Only add a VCS `repositories` entry (pointing at `https://github.com/Lonsdale201/better-route`) if you need to track an unreleased branch or a fork.
 
 **Verification:**
 ```bash
@@ -44,19 +34,19 @@ composer show better-route/better-route
 ```
 
 **Rules:**
-- The `repositories` block is required until the package is published on Packagist.
+- Plain `composer require` works — no `repositories` block needed since v1.0.0.
 - All route registration must happen inside a `rest_api_init` action hook.
 - Available quality commands: `composer test`, `composer analyse`, `composer cs-check` (run via `php vendor/bin/...` since v0.3.0).
 
 ---
 
-## Skill: Migrate a project to v0.6.0
+## Skill: Migrate a project to v1.0.0
 
-**When:** The user is upgrading to v0.6.0.
+**When:** The user is upgrading to v1.0.0 (the first stable release).
 
 **Steps:**
-1. Bump the constraint to `^0.6.0` and run `composer update better-route/better-route`.
-2. **No breaking changes from 0.5.0.** All v0.6.0 additions are opt-in.
+1. Bump the constraint to `^1.0` and run `composer update better-route/better-route`.
+2. Mostly a consolidation of the 0.3–0.6 line, but 1.0.0 ships a few intentional **behavior changes** (fail-safe hardening) — review the [v1.0.0 release notes](release-notes/v1.0.0): email/login claim mapping off by default, granted-scope wildcards opt-in, CORS wildcard+credentials rejected, Woo money as strings, HPOS `503`, `428` for missing preconditions.
 3. Decide whether the project benefits from the new identity/network primitives:
    - `Rs256JwksJwtVerifier` + `HttpJwksProvider` — when the issuer publishes a JWKS endpoint (most OIDC providers).
    - `HmacSignatureMiddleware` — when partners send signed webhooks with shared secrets.
