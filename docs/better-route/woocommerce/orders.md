@@ -21,7 +21,7 @@ The Orders resource provides full CRUD for WooCommerce orders with HPOS support.
 | `fields`      | string         | default set       | Comma-separated field names         |
 | `status`      | string\|array  | —                 | Filter by status (comma-separated)  |
 | `customer_id` | int            | —                 | Filter by customer ID               |
-| `search`      | string         | —                 | Wildcard search                     |
+| `search`      | string         | —                 | Full-text order search              |
 | `sort`        | string         | `-date_created`   | Sort field, prefix `-` for DESC     |
 | `page`        | int            | 1                 | Page number                         |
 | `per_page`    | int            | 20                | Items per page (max 100)            |
@@ -73,7 +73,19 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `total`
 
 Each line item accepts: `product_id` (required), `variation_id`, `quantity`, `subtotal`, `total`, `meta_data`.
 
-On update, providing `line_items` replaces all existing items. Totals are recalculated automatically.
+**Since 1.0.0:** when a line item supplies a `variation_id`, the order is built from the actual variation product (validated to belong to the given `product_id`), so its price, name, and attributes come from the variation — not the parent product. A `variation_id` that does not belong to `product_id` is rejected with `400 validation_failed`.
+
+On update, providing `line_items` replaces all existing items and totals are recalculated automatically.
+
+**Since 1.0.0:** replacing line items on an order that has already reduced stock is rejected with `409 woo_line_items_locked`, because removing and re-adding items would silently corrupt inventory. Edit line items before stock reduction, or adjust a stock-reduced order through status transitions.
+
+## Money and validation
+
+**Since 1.0.0:**
+
+- Monetary fields — order `total`, `total_tax`, and line-item `subtotal`/`total` — are serialized as decimal **strings** (e.g. `"45.40"`), matching WooCommerce's own REST API and avoiding float rounding drift.
+- The `search` parameter maps to the supported `s` query var. (Earlier versions passed an unsupported `search`/`*term*` var that WooCommerce silently ignored, returning unfiltered results.)
+- Invalid input rejected by a WooCommerce CRUD setter (`WC_Data_Exception`) is returned as `400`, not `500`.
 
 ## set_paid
 

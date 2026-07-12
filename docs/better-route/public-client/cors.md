@@ -48,7 +48,7 @@ new CorsPolicy(
 );
 ```
 
-- `allowedOrigins` — exact origin strings. Use `['*']` for wildcard. Wildcard with `allowCredentials: true` echoes the request origin back instead of `*` (browsers reject `*` with credentials).
+- `allowedOrigins` — exact origin strings. Use `['*']` for wildcard **without credentials**. **Since 1.0.0**, constructing `CorsPolicy` with `['*']` **and** `allowCredentials: true` throws `InvalidArgumentException`: reflecting an arbitrary origin back together with `Access-Control-Allow-Credentials: true` would defeat the same-origin policy for authenticated endpoints. List explicit origins when credentials are enabled.
 - `allowedMethods` / `allowedHeaders` / `exposedHeaders` — emitted as `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`, `Access-Control-Expose-Headers`. The defaults already include the headers and response markers used by other better-route middleware.
 - `allowCredentials` — emits `Access-Control-Allow-Credentials: true`. Required when the browser sends cookies or `Authorization` with credentials.
 - `maxAgeSeconds` — preflight cache duration.
@@ -81,9 +81,8 @@ The handler body is irrelevant — `CorsMiddleware` short-circuits with `204` an
 | `['https://app.example.com']` | any | `https://app.example.com` | `https://app.example.com` |
 | `['https://app.example.com']` | any | `https://other.example.com` | none → `403 cors_origin_denied` (default) |
 | `['*']` | `false` | any | `*` |
-| `['*']` | `true` | `https://app.example.com` | `https://app.example.com` (echo) |
 | `['*']` | `false` | none | `*` |
-| `['*']` | `true` | none | none → no CORS headers |
+| `['*']` | `true` | — | **rejected at construction** — `CorsPolicy` throws `InvalidArgumentException` (since 1.0.0) |
 
 `Vary: Origin` is always emitted when CORS headers are produced.
 
@@ -108,7 +107,7 @@ $router->group('/account', function (Router $r) use ($jwt): void {
 ## Common mistakes
 
 - Adding `CorsMiddleware` after auth — preflight requests are rejected with `401`.
-- Using `['*']` with `allowCredentials: true` and forgetting that browsers will not accept `*` with credentials — the policy echoes the origin back, which works, but only for whitelisted origins is this what you want. Prefer an explicit allowlist.
+- Using `['*']` with `allowCredentials: true` — **since 1.0.0 this throws at construction**. Reflecting an arbitrary origin back with credentials defeats the same-origin policy; list explicit origins when credentials are enabled.
 - Forgetting to register `OPTIONS` routes — WP dispatches a `404` before better-route sees the request.
 - Stripping default exposed headers — clients lose access to `ETag`, `Idempotency-Replayed`, and rate-limit telemetry.
 

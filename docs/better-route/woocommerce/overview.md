@@ -22,7 +22,7 @@ This registers all four resource groups under `/wp-json/myplugin/v1/woo/`.
 - Sparse field selection via `?fields=id,name,status`
 - Pagination with `page` / `per_page` and `X-WP-Total` / `X-WP-TotalPages` headers
 - Sortable lists with `?sort=-date_created` (prefix `-` for DESC)
-- Optional HPOS guard: 503 if WooCommerce unavailable, 409 if HPOS required but disabled
+- Optional HPOS guard on **order** routes: `503` if WooCommerce unavailable, `503` if HPOS required but disabled *(v1.0.0: was `409`; product / coupon / customer routes are not HPOS-gated)*
 - Optional idempotency middleware on write endpoints (transient-, array-, or `wpdb`-backed)
 - OpenAPI component schemas via `BetterRoute::wooOpenApiComponents()`
 - *(v0.3.0)* configurable `deleteMode` (`'force'` or `'trash'`) for orders / products / coupons

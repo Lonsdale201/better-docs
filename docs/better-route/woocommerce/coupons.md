@@ -66,6 +66,13 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `code`
 - `email_restrictions` is an array of email address strings.
 - `date_expires` accepts an ISO date string or `null`.
 
+**Since 1.0.0:**
+
+- The `code` filter and coupon creation resolve through `wc_get_coupon_id_by_code()`, applying WooCommerce's coupon-code normalization and cache instead of a raw title match.
+- Creating a coupon whose `code` already exists is rejected with `409 coupon_exists` (duplicate codes make `WC_Coupon( code )` resolution ambiguous at apply time).
+- Monetary fields (`amount`, `minimum_amount`, `maximum_amount`) are serialized as decimal strings in responses.
+- Invalid input rejected by a WooCommerce CRUD setter (e.g. an invalid `discount_type`, a `WC_Data_Exception`) is returned as `400`, not `500`.
+
 ## v0.3.0 changes
 
 - `deleteMode` (`'force'` default or `'trash'`) on the registrar controls whether `DELETE` permanently removes or trashes the coupon.

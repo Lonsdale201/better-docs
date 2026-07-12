@@ -34,7 +34,7 @@ $middleware = new SingleUseTokenMiddleware(
             ? (string) $request->get_param('code')
             : null,
     onConsumed: null,
-    hashSalt: '',           // empty -> falls back to wp_salt('better_route_single_use_token')
+    hashSalt: '',           // empty -> derived from wp_salt('auth') (since 1.0.0)
     ttlSeconds: 300
 );
 
@@ -83,7 +83,7 @@ new SingleUseTokenMiddleware(
 
 - `tokenSource(mixed $request): ?string` — pulls the token off the request. Common sources: a `code` body param, a query string, a custom header.
 - `onConsumed(array $context, mixed $request, RequestContext $next): mixed` — optional hook called right after a successful consume. Return a `RequestContext` to replace the one passed forward (e.g. to enrich `auth` from the token context). Return anything else and the original context is used.
-- `hashSalt` — caller-provided salt. Empty falls back to `wp_salt('better_route_single_use_token')`. The middleware throws if both are empty.
+- `hashSalt` — caller-provided salt. **Since 1.0.0** an empty salt is derived from the documented `wp_salt('auth')` scheme (HMAC-bound to a library-specific context), rather than a custom `wp_salt()` scheme. The middleware throws if no salt can be resolved (e.g. WordPress not loaded and no explicit salt passed).
 - `ttlSeconds` — default TTL passed to the store when `storeToken()` is called without an override.
 
 ## Behavior
@@ -147,7 +147,7 @@ $store = new WpCacheSingleUseTokenStore(
 
 - Uses `wp_cache_add` as a short consume lock (default `10` seconds) plus transients for the record and the consumed marker.
 - Throws at construction if any of `wp_cache_add`, `wp_cache_delete`, `get_transient`, `set_transient`, or `delete_transient` is unavailable.
-- Lighter than `wpdb` but only safe when the object cache is actually persistent (Redis, Memcached). On hosts without a persistent cache, prefer the `wpdb` store.
+- **Since 1.0.0** it also throws at construction when no persistent object cache is present (`wp_using_ext_object_cache()` is `false`). The `wp_cache_add` consume-lock is only cross-request atomic with a persistent cache (Redis, Memcached); without one, two concurrent requests could each take an in-process lock and consume the same token twice. Use `WpdbSingleUseTokenStore` on hosts without a persistent object cache.
 
 ### `ArraySingleUseTokenStore`
 
@@ -212,5 +212,5 @@ A second `POST /oauth/token` with the same code returns `409 single_use_token_re
 
 - Storing the plaintext token on the issuer side. Only the user should hold it.
 - Using a different salt at issue time and consume time — the digest will not match and every consume returns `null`.
-- Picking `WpCacheSingleUseTokenStore` on a host without a persistent object cache. The cache flushes between requests on shared hosting and tokens disappear silently.
+- Picking `WpCacheSingleUseTokenStore` on a host without a persistent object cache — **since 1.0.0 it throws at construction** instead of silently allowing double-consumption. Use `WpdbSingleUseTokenStore` there.
 - Reusing the idempotency store for single-use tokens. The two stores have different invariants and TTL strategies — keep them separate.

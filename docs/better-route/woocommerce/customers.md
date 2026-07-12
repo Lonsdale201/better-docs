@@ -30,9 +30,11 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 
 ## Available fields
 
-**List defaults:** id, email, first_name, last_name, display_name, role, date_created, orders_count, total_spent
+**List defaults:** id, email, first_name, last_name, display_name, role, date_created
 
 **All fields:** id, email, first_name, last_name, display_name, role, username, date_created, date_modified, billing, shipping, is_paying_customer, avatar_url, orders_count, total_spent, meta_data
+
+**Since 1.0.0:** `orders_count` and `total_spent` are no longer in the list defaults — each is a per-customer order query, so including them by default made `list` an N+1. They are still returned by `get` and by `list` when requested explicitly via `?fields=`. `total_spent` is serialized as a decimal string; `orders_count` stays an integer.
 
 ## Create / Update payload
 
@@ -68,6 +70,11 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 - `password` is write-only. It is never returned in responses.
 - Address fields (billing/shipping): first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone.
 - Delete uses `wp_delete_user()` and permanently removes the WordPress user.
+
+**Since 1.0.0:**
+
+- `DELETE /customers/{id}` works in the REST context: the library loads `wp-admin/includes/user.php` before calling `wp_delete_user()` (that file is not auto-loaded on REST requests, so the endpoint previously failed silently). The `delete_user` capability check still applies.
+- Invalid input rejected by a WooCommerce CRUD setter (e.g. an invalid email via `WC_Customer::set_email()`, a `WC_Data_Exception`) is returned as `400`, not `500`.
 
 ## v0.3.0 restrictions
 

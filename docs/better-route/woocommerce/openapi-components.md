@@ -52,6 +52,8 @@ $document = $exporter->export($contracts, [
 **Common**
 - `DeleteResponse` — `{data: {id, deleted}}`
 
+**Since 1.0.0:** monetary fields in these schemas are typed `string` (order `total` / `total_tax`, coupon `amount` / `minimum_amount` / `maximum_amount`, customer `total_spent`; line-item `total` / `subtotal` were already strings), matching how the API serializes money to avoid float drift.
+
 ## Security schemes
 
 The `OpenApiExporter` supports declaring security schemes in the exported document:

@@ -27,12 +27,14 @@ $optimisticLock = new OptimisticLockMiddleware(
 
 ## Behavior
 
-- missing expected version and `required=true` -> `412 precondition_required`
+- missing expected version and `required=true` -> `428 precondition_required` *(since 1.0.0; was `412`)*, thrown as `PreconditionRequiredException`
 - missing current version -> `409 version_unavailable`
 - mismatch -> `412 optimistic_lock_failed`
 - match -> passes and stores `optimisticLock` attribute in context
 
 Also accepts wildcard expected version: `If-Match: *`.
+
+**Since 1.0.0:** a *missing* precondition returns `428 Precondition Required` (RFC 6585) via `PreconditionRequiredException`; `412 Precondition Failed` is now reserved for a precondition that was supplied but did not match.
 
 ## Common mistakes
 

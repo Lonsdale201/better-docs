@@ -29,6 +29,13 @@ On success, middleware writes auth context attributes:
 
 Even with auth middleware, route registration still requires explicit `permission_callback` (by design in dispatcher integration). For middleware-authenticated routes, declare the intent with `->protectedByMiddleware(...)` (since 0.4.0). For routes guarded by HMAC or single-use tokens (no WordPress user behind them), use `->publicRoute()` and let the middleware be the gate.
 
+## v1.0.0 hardening
+
+- **`WpClaimsUserMapper` email/login mapping is off by default.** Only id claims and an explicit custom resolver map a WP user out of the box; email mapping is opt-in and requires a truthy `email_verified` claim. Prevents account takeover from unverified third-party-issuer email claims. See [JWT and Bearer](jwt-bearer).
+- **Granted-scope wildcards are opt-in.** A trailing `*` on a token-supplied scope is treated as a literal unless `allowGrantedScopeWildcards: true`; server-defined required-scope wildcards are unchanged.
+- **Optional HMAC query-string signing** via `signQueryString` (off by default). See [HMAC Request Signatures](hmac-signatures).
+- **`HttpJwksProvider` uses `wp_safe_remote_get`** with bounded redirects and response size.
+
 ## v0.6.0 additions
 
 - **Asymmetric JWT.** `Rs256JwksJwtVerifier` plus `HttpJwksProvider` and `StaticJwksProvider` for OIDC-style providers. Strict `kid` matching, algorithm pinning, private-field stripping. See [JWKS (RS256 / ES256)](jwks-rs256).

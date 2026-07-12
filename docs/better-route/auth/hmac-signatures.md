@@ -43,13 +43,15 @@ new HmacSignatureMiddleware(
     string $keyIdHeader = 'X-Key-Id',
     int $replayWindowSeconds = 300,
     string $algorithm = 'sha256',
-    ?callable $now = null
+    ?callable $now = null,
+    bool $signQueryString = false
 );
 ```
 
 - `algorithm` must be a member of `hash_hmac_algos()`. Defaults to `sha256`.
 - `replayWindowSeconds` must be positive. Both past and future drift outside the window fail closed.
 - Inject a `$now` callable in tests.
+- `signQueryString` *(since 1.0.0)* — when `true`, the canonicalized query string is appended to the signed canonical (see below). Defaults to `false`.
 
 ## Canonical input
 
@@ -65,6 +67,14 @@ timestamp + "\n" + method + "\n" + path + "\n" + sha256(body)
 - `sha256(body)` — hex digest of the raw request body. Use an empty body for `GET`/`DELETE`.
 
 The client signs the same canonical string with the shared secret and sends the result in `X-Signature`.
+
+**Since 1.0.0 — optional query-string signing.** By default the query string is **not** authenticated, so send any security-relevant parameter in the request body. Set `signQueryString: true` to append a fifth line with the canonicalized query string:
+
+```text
+timestamp + "\n" + method + "\n" + path + "\n" + sha256(body) + "\n" + canonicalQuery
+```
+
+`canonicalQuery` is the request's query parameters sorted by key (recursively, via `ksort`) and re-encoded with `http_build_query` (empty string when there are no query params). The client's signer must produce the same canonical query line.
 
 ## Accepted signature encodings
 
@@ -149,6 +159,6 @@ The middleware fails closed for unknown key ids, so removing a `kid` immediately
 ## Common mistakes
 
 - Hashing the request after it has been mutated by a body parser. Always compute `sha256(body)` over the **raw** wire bytes.
-- Including the query string in `path`. The middleware computes the signature over the URL path only.
+- Assuming the query string is authenticated. By default it is not — send signed parameters in the body, or enable `signQueryString: true` (since 1.0.0) and have your client sign the matching canonical query line.
 - Letting clocks drift more than `replayWindowSeconds` between issuer and verifier — `stale_signature` errors point here first.
 - Reusing a single shared secret across many partners. Use distinct `kid`s so revocation is per-partner.

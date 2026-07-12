@@ -42,8 +42,8 @@ Handlers may return:
 ## Exception mapping
 
 - `ApiException`: status/errorCode/details preserved
-- `InvalidArgumentException`: `400` with `invalid_request`; `details.exception` includes the class name (developer aid)
-- other throwables: `500` with `internal_error`; **message normalized to `"Unexpected error."`** and `details` is empty *(v0.3.0)* — internal exception class and message no longer leak
+- `InvalidArgumentException` (uncaught): `400` with `invalid_request`. **Since 1.0.0** the message is normalized to `"Invalid request."` and `details` is empty — the exception class name and raw message are no longer exposed (earlier versions put the class name in `details.exception` as a developer aid)
+- other throwables: `500` with `internal_error`; **message normalized to `"Unexpected error."`** and `details` is empty *(v0.3.0)* — internal exception class and message never leak
 
 ## OAuth error format *(v0.6.0)*
 
@@ -67,4 +67,4 @@ Errors on those routes use the RFC 6749 shape (`{ "error": ..., "error_descripti
 
 - every error payload contains `requestId`
 - business conflict uses `ConflictException` (`409`)
-- precondition failures use `PreconditionFailedException` (`412`)
+- a *failed* precondition uses `PreconditionFailedException` (`412`); a *missing* required precondition uses `PreconditionRequiredException` (`428`, since 1.0.0)

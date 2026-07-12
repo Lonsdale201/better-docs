@@ -4,13 +4,13 @@ title: Middleware Catalog
 
 ## Auth
 
-- `JwtAuthMiddleware` — HS256 / asymmetric JWT verification through any `JwtVerifierInterface`
+- `JwtAuthMiddleware` — HS256 / asymmetric JWT verification through any `JwtVerifierInterface`; *(v1.0.0)* `allowGrantedScopeWildcards` (default false) opts into trailing-`*` wildcards on granted scopes (required-scope wildcards are unaffected)
 - `Rs256JwksJwtVerifier` *(v0.6.0)* — RS256 / ES256 verifier backed by JWKS; pairs with `HttpJwksProvider` / `StaticJwksProvider`
-- `BearerTokenAuthMiddleware`
-- `HmacSignatureMiddleware` *(v0.6.0)* — HMAC request signatures with replay window; pairs with `HmacSecretProviderInterface` / `ArrayHmacSecretProvider`
+- `BearerTokenAuthMiddleware` — *(v1.0.0)* same `allowGrantedScopeWildcards` opt-in as `JwtAuthMiddleware`
+- `HmacSignatureMiddleware` *(v0.6.0)* — HMAC request signatures with replay window; pairs with `HmacSecretProviderInterface` / `ArrayHmacSecretProvider`; *(v1.0.0)* `signQueryString` (default false) also signs the canonical query string
 - `CookieNonceAuthMiddleware`
 - `ApplicationPasswordAuthMiddleware`
-- `WpClaimsUserMapper`
+- `WpClaimsUserMapper` — *(v1.0.0)* `email`/`login` claim mapping is off by default; email mapping requires an `email_verified` claim (`requireEmailVerified`, default true)
 - `OwnershipGuardMiddleware` *(v0.5.0)* — route-level "current user owns this resource" guard; pairs with `OwnedResourcePolicy::currentUserOwns()` for Resource DSL
 
 ## Write safety
@@ -26,8 +26,8 @@ title: Middleware Catalog
 - `SingleUseTokenStoreInterface` *(v0.6.0)* — store contract (`consume` / `store` / `wasConsumed`)
 - `ArraySingleUseTokenStore` *(v0.6.0)* — in-memory store for tests
 - `WpdbSingleUseTokenStore` *(v0.6.0)* — `wpdb`-backed token store with TTL pruning; `installSchema()` once on activation
-- `WpCacheSingleUseTokenStore` *(v0.6.0)* — object-cache lock + transient-backed records
-- `OptimisticLockMiddleware`
+- `WpCacheSingleUseTokenStore` *(v0.6.0)* — object-cache lock + transient-backed records; *(v1.0.0)* requires a persistent object cache (throws otherwise) — use `WpdbSingleUseTokenStore` on default hosting
+- `OptimisticLockMiddleware` — *(v1.0.0)* a missing precondition returns `428 precondition_required` (was `412`)
 - `CallbackOptimisticLockVersionResolver`
 
 ## Public-client / CORS *(v0.5.0)*

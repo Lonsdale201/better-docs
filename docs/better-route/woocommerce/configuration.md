@@ -54,7 +54,9 @@ $router = \BetterRoute\BetterRoute::wooRouteRegistrar()
 URL prefix for all WooCommerce routes. Set to `/shop` to get `/wp-json/vendor/v1/shop/orders`.
 
 **requireHpos** (bool, default `true`)
-When true, the HPOS guard returns `409 hpos_required` if HPOS is not enabled. Set to `false` if you support legacy post-based orders.
+When true, the HPOS guard returns `503 hpos_required` if HPOS is not enabled. Set to `false` if you support legacy post-based orders.
+
+**Since 1.0.0:** `requireHpos` gates only the **order** routes. Product, coupon, and customer routes are not moved by HPOS, so they only require WooCommerce to be available and never return `hpos_required`. The HPOS-unavailable status is now `503` (was `409`).
 
 **defaultPerPage** (int, default `20`)
 Default number of items returned by list endpoints when `per_page` is not specified.
@@ -85,6 +87,16 @@ Applies to orders, products, and coupons. `'force'` permanently deletes the enti
 - **Customer endpoints are restricted to users with the `customer` role.** Lookups for non-customer users return `404`.
 - **Customer create/update/delete require WordPress user-management capabilities** (`create_users` / `edit_user` / `delete_user`) in addition to the configured `permissions` capability.
 - **Protected meta keys (starting with `_`) are not returned and not writable** by default. Pass `$allowProtected = true` at the call site only when intentional.
+
+## Declaring HPOS compatibility (host plugin) *(v1.0.0)*
+
+A library cannot declare HPOS (custom order tables) compatibility on behalf of the plugin that embeds it. Any plugin that exposes these order routes touches orders and must declare compatibility on `before_woocommerce_init`, or WooCommerce flags it incompatible and blocks HPOS enablement. Call the helper from your plugin's main file:
+
+```php
+\BetterRoute\Integration\Woo\HposGuard::declareCompatibility(__FILE__);
+```
+
+This registers a `before_woocommerce_init` callback that calls `FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true)`. The runtime `requireHpos` guard does not remove this obligation.
 
 ## Read-only store example
 

@@ -76,6 +76,7 @@ new AtomicIdempotencyMiddleware(
 - Default table: `better_route_atomic_idempotency` (auto-prefixed with `$wpdb->prefix` when not already prefixed).
 - Cross-database table names (containing `.`) are rejected. Table names must match `^[A-Za-z_][A-Za-z0-9_]*$`.
 - Records expire on `expires_at`. Expired rows are deleted opportunistically on `reserve()`.
+- **Since 1.0.0** the completed response is restored with `unserialize()` restricted to the library's `Response` class (`['allowed_classes' => [Response::class]]`), as object-injection defense-in-depth.
 - Call `installSchema()` once on plugin activation.
 
 ```sql

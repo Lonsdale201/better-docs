@@ -7,7 +7,7 @@ title: Installation
 - PHP `^8.1`
 - WordPress REST context (register routes in `rest_api_init`)
 - OpenSSL extension (required for `Rs256JwksJwtVerifier` since v0.6.0)
-- WooCommerce 10.6+ stubs are tested when the optional Woo integration is used
+- Targets current WordPress 7.0 / WooCommerce 10.9; the optional Woo integration is tested against WooCommerce 10.9 stubs (WordPress stubs are capped at 6.9 by the WooCommerce stubs' dependency) and verified on a live WP 7.0 / WC 10.9 HPOS install
 
 ## Composer setup
 
@@ -16,7 +16,7 @@ Use VCS repository setup from the public GitHub repository:
 ```json
 {
   "require": {
-    "better-route/better-route": "^0.6.0"
+    "better-route/better-route": "^1.0"
   },
   "repositories": [
     {

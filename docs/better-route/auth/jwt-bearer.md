@@ -48,6 +48,8 @@ $jwtMiddleware = new JwtAuthMiddleware(
 
 `WpClaimsUserMapper` defaults changed: `idClaims` is now `['user_id', 'uid', 'wp_user_id']`. Re-add `'sub'` explicitly if your tokens use it as the WP user identifier.
 
+**Since 1.0.0:** `WpClaimsUserMapper` no longer maps `email` or `login`/`username` claims by default — `$emailClaims` and `$loginClaims` default to empty, so only id claims and an explicit `$customResolver` resolve a WP user out of the box. When you opt into email mapping it requires a truthy `email_verified` claim (`$requireEmailVerified`, default `true`). This prevents account takeover from a validly signed third-party token carrying an unverified `email`; prefer a first-party `user_id` claim or an issuer-scoped custom resolver.
+
 ## JWT with RS256/ES256 (JWKS) verifier
 
 For tokens issued by an OIDC provider, use [`Rs256JwksJwtVerifier`](jwks-rs256) with `HttpJwksProvider`:
@@ -86,12 +88,21 @@ $bearer = new BearerTokenAuthMiddleware(
 
 ## Scope matching
 
-Wildcard matching is supported both ways:
+Server-defined **required**-scope wildcards are always honored:
 
 - required `content:*` matches granted `content:read`
-- required `content:read` matches granted `content:*`
 
-`BearerTokenAuthMiddleware` and `JwtAuthMiddleware` accept both array `scope` claims and OIDC-style space-delimited strings. 0.6.0 adds regression coverage for the string-shape behavior — no contract change.
+**Since 1.0.0:** a trailing `*` on a **granted** (token-supplied) scope is treated as a literal by default, so token data cannot widen its own authority. To honor hierarchical wildcard grants (e.g. granted `content:*` satisfying required `content:read`), opt in with `allowGrantedScopeWildcards: true` on `JwtAuthMiddleware` / `BearerTokenAuthMiddleware`:
+
+```php
+$jwtMiddleware = new JwtAuthMiddleware(
+    verifier: $verifier,
+    requiredScopes: ['content:read'],
+    allowGrantedScopeWildcards: true, // honor a granted `content:*`
+);
+```
+
+`BearerTokenAuthMiddleware` and `JwtAuthMiddleware` accept both array `scope` claims and OIDC-style space-delimited strings. 0.6.0 adds regression coverage for the string-shape behavior.
 
 ## Common mistakes
 

@@ -102,7 +102,7 @@ new HttpJwksProvider(
 ```
 
 - `jwksUri` **must** be `https`. The constructor throws otherwise.
-- The default HTTP client uses `wp_remote_get` with `sslverify => true` and a `10` second timeout. Non-200 responses, empty bodies, and `WP_Error` returns throw `RuntimeException`.
+- The default HTTP client uses `wp_safe_remote_get` with `sslverify => true` and a `10` second timeout. **Since 1.0.0** it also bounds redirects (`redirection => 1`) and caps `limit_response_size`: `wp_safe_remote_get` applies WordPress's SSRF protection (blocking internal/loopback hosts), and the bounds harden against a hostile or misbehaving issuer redirecting internally or returning an unbounded body. Non-200 responses, empty bodies, and `WP_Error` returns throw `RuntimeException`.
 - The default cache key is `better_route_jwks_<sha1($jwksUri)>`. Pass `cacheKey` if you want a stable identifier across deploys.
 - `issuer` is informational — used by the cache invalidation hook below.
 

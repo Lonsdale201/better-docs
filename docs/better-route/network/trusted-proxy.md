@@ -8,6 +8,8 @@ title: Trusted Proxy IP Resolution
 
 For new code, prefer `TrustedProxyClientIpResolver` directly — it implements `ClientIpResolverInterface` and slots into `RateLimitMiddleware` and `IpAllowlistMiddleware` cleanly.
 
+**Since 1.0.0:** when `REMOTE_ADDR` is trusted, the resolver reads a forwarded header by walking it **right-to-left** and returning the first address that is **not** itself a trusted proxy — the closest untrusted hop. Earlier versions returned the left-most entry, which a client can forge behind an *appending* proxy (e.g. nginx `proxy_add_x_forwarded_for` appends the real peer, leaving any client-supplied value to its left). The old behavior let a caller spoof its IP and defeat `IpAllowlistMiddleware`, rate-limit buckets, and audit IPs. Single-value overwriting headers such as `CF-Connecting-IP` are unaffected.
+
 ## Minimal example
 
 ```php
@@ -61,10 +63,10 @@ new TrustedProxyClientIpResolver(
 |---|---|---|---|
 | missing/invalid | — | — | `null` |
 | outside `trustedProxyCidrs` | no | — | `REMOTE_ADDR` returned (forwarded headers ignored) |
-| inside `trustedProxyCidrs` | yes | first valid IP found | first valid IP from the first matching header |
-| inside `trustedProxyCidrs` | yes | none parseable | `REMOTE_ADDR` returned |
+| inside `trustedProxyCidrs` | yes | at least one untrusted hop | closest untrusted hop — the right-most IP that is **not** in `trustedProxyCidrs` — from the first matching header |
+| inside `trustedProxyCidrs` | yes | none parseable, or every hop trusted | `REMOTE_ADDR` returned |
 
-`X-Forwarded-For` is comma-delimited; the first valid IP wins (left-most, which is the original client per spec).
+`X-Forwarded-For` is comma-delimited. **Since 1.0.0** the resolver walks it right-to-left and returns the first IP that is not one of your `trustedProxyCidrs` (the closest untrusted hop), rather than the left-most entry — the left-most value is attacker-controllable behind an appending proxy. If every hop is trusted, `REMOTE_ADDR` is returned.
 
 The resolver checks the request object first (`$request->get_header($header)`) when one is passed in, then falls back to `$_SERVER`. Both `Header-Name` and `HTTP_HEADER_NAME` shapes are accepted.
 
@@ -84,7 +86,7 @@ Use `CidrMatcher::matches($ip, $cidr)` and `CidrMatcher::assertValid($cidr)` if 
 
 - a request with `REMOTE_ADDR` from outside the trusted CIDR returns `REMOTE_ADDR` (proxy headers ignored);
 - a request from a trusted proxy with `CF-Connecting-IP: 203.0.113.5` returns `203.0.113.5`;
-- a request from a trusted proxy with `X-Forwarded-For: 203.0.113.5, 10.0.0.1` returns `203.0.113.5`;
+- a request from a trusted proxy with `X-Forwarded-For: 1.2.3.4, 203.0.113.5, 173.245.48.1` (trailing hop is a trusted Cloudflare IP) returns `203.0.113.5` — the trusted hop is skipped and the spoofable left-most `1.2.3.4` is ignored;
 - a malformed CIDR in the constructor throws `InvalidArgumentException`.
 
 ## Common mistakes

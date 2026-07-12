@@ -43,6 +43,8 @@ $idempotency = new IdempotencyMiddleware(
 
 Cross-database table names (containing `.`) are rejected at the storage boundary.
 
+**Since 1.0.0**, `WpdbIdempotencyStore` (and `WpdbAtomicIdempotencyStore`) restrict `unserialize()` of the cached response to the library's own `Response` class (`['allowed_classes' => [Response::class]]`), as object-injection defense-in-depth — a tampered row cannot instantiate arbitrary classes.
+
 ## How it works
 
 - reads `Idempotency-Key` header

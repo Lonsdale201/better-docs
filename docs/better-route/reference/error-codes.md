@@ -38,11 +38,15 @@ All errors are returned under the better-route envelope unless a route opts into
 - `idempotency_in_progress` (`409`) *(v0.5.0, `AtomicIdempotencyMiddleware`)*
 - `single_use_token_reused` (`409`) *(v0.6.0, `SingleUseTokenMiddleware`)*
 - `version_unavailable` (`409`)
+- `coupon_exists` (`409`) *(v1.0.0, Woo coupon create — duplicate code)*
+- `woo_line_items_locked` (`409`) *(v1.0.0, Woo order — line-item edit on a stock-reduced order)*
 - `precondition_failed` (`412`)
-- `precondition_required` (`412`)
 - `optimistic_lock_failed` (`412`)
+- `precondition_required` (`428`) *(v1.0.0, was `412` — missing optimistic-lock precondition)*
 - `rate_limited` (`429`)
 - `internal_error` (`500`)
+- `hpos_required` (`503`) *(v1.0.0, was `409`; WooCommerce HPOS not enabled)*
+- `woo_unavailable` (`503`) *(WooCommerce not available)*
 
 ## OAuth error format *(v0.6.0)*
 

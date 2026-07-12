@@ -28,13 +28,15 @@ The Products resource provides full CRUD for WooCommerce products.
 | `page`         | int            | 1                 | Page number                         |
 | `per_page`     | int            | 20                | Items per page (max 100)            |
 
-Allowed sort fields: `date_created`, `date_modified`, `id`, `title`, `price`
+Allowed sort fields: `date_created`, `date_modified`, `id`, `title`
 
 ## Available fields
 
 **List defaults:** id, name, slug, status, type, sku, price, stock_status, date_created, date_modified
 
 **All fields:** id, name, slug, status, type, sku, price, regular_price, sale_price, date_created, date_modified, catalog_visibility, description, short_description, stock_status, stock_quantity, manage_stock, virtual, downloadable, meta_data
+
+**Since 1.0.0:** `price` is **read-only** — it is a derived field that WooCommerce computes from `regular_price`/`sale_price` (and the scheduled-sale sync). It is still returned in responses, but sending it in a create/update payload is rejected with `400 validation_failed`; set `regular_price`/`sale_price` instead. Monetary fields are serialized as decimal strings (e.g. `"29.99"`).
 
 ## Create / Update payload
 
@@ -65,6 +67,12 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `title`, `price`
 - `type` is create-only. It cannot be changed after creation. Defaults to `simple` when omitted.
 - Boolean fields (`manage_stock`, `virtual`, `downloadable`) accept booleans, integers (0/1), or strings (`"true"`, `"false"`, `"yes"`, `"no"`).
 - `stock_quantity` accepts an integer or `null`.
+
+**Since 1.0.0:**
+
+- The `search` parameter maps to the supported `s` query var. (Earlier versions passed an unsupported `search` var that WooCommerce silently ignored, returning unfiltered results.)
+- `sort=price` was removed — WooCommerce's product query does not reliably order by price, so it is no longer advertised and returns `400 validation_failed`.
+- Invalid input rejected by a WooCommerce CRUD setter (`WC_Data_Exception`) is returned as `400`, not `500`.
 
 ## v0.3.0 changes
 
