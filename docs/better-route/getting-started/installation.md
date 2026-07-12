@@ -11,30 +11,35 @@ title: Installation
 
 ## Composer setup
 
-Use VCS repository setup from the public GitHub repository:
+As of v1.0.0 the package is published on [Packagist](https://packagist.org/packages/better-route/better-route) — install it directly, no repository entry needed:
 
-```json
-{
-  "require": {
-    "better-route/better-route": "^1.0"
-  },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/Lonsdale201/better-route"
-    }
-  ],
-  "prefer-stable": true
-}
+```bash
+composer require better-route/better-route:^1.0
 ```
 
-After package index publication, you can remove the `repositories` block and keep only `require`.
+Or in `composer.json`:
 
 ```json
 {
   "require": {
     "better-route/better-route": "^1.0"
   }
+}
+```
+
+If you need to track an unreleased branch (or a fork), add a VCS repository pointing at GitHub:
+
+```json
+{
+  "require": {
+    "better-route/better-route": "dev-main"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Lonsdale201/better-route"
+    }
+  ]
 }
 ```
 
@@ -53,4 +58,3 @@ Composer scripts run tools through `php vendor/bin/...` so missing executable bi
 - `composer show better-route/better-route` resolves correctly
 - `composer test` passes
 - routes are registered only inside `rest_api_init`
-- no docs assumptions rely on unpublished package index features
