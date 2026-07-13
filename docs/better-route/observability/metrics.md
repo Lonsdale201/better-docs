@@ -36,6 +36,14 @@ Error metric adds:
 
 `PrometheusMetricSink::render()` outputs counter and summary lines ready for scrape/export.
 
+`PrometheusMetricSink` and `InMemoryMetricSink` are **process/request-local** collectors — counters reset with each PHP request. Export the rendered output per request, or replace the sink with one backed by persistent storage when you need cross-request totals.
+
+## v1.1.0 behavior changes
+
+- **Telemetry failures never mask application results.** A sink that throws inside `increment()`/`observe()` is swallowed; the response (or the in-flight application exception) is returned unchanged.
+- **`metricPrefix` is validated** at construction against the Prometheus metric-name grammar (`[a-zA-Z_:][a-zA-Z0-9_:]*`); an invalid prefix throws `InvalidArgumentException` instead of producing an unscrapable exposition.
+- **`PrometheusMetricSink` validates metric names and label names** on write and rejects negative counter increments, so a bad caller cannot corrupt the rendered exposition format.
+
 ## Common mistakes
 
 - Missing error-code extraction from structured responses

@@ -25,7 +25,7 @@ Produced by `AuditEventFactory`:
 - `route`, `method`
 - `outcome` (`success|error`)
 - `statusCode`
-- `errorCode` and `error` message (on failure)
+- `errorCode` and `error` message (on failure) — *(v1.1.0)* for non-`ApiException` throwables the event message is redacted to `Unexpected error.`, matching the HTTP response; raw internal exception messages no longer reach the audit log
 - `durationMs`
 - compatibility alias: `status` (`ok|error`)
 - *(v0.5.0)* any keys merged from `RequestContext::$attributes['audit']` (see below)
@@ -77,6 +77,11 @@ new AuditEnricherMiddleware(
     bool $includeClientIp = false
 );
 ```
+
+## v1.1.0 behavior changes
+
+- **Logger failures are best-effort.** A logger that throws inside `log()` is swallowed: the API response is returned unchanged, and an application exception already in flight propagates instead of being masked by the telemetry failure.
+- **Internal error messages are redacted** in error events (see the schema note above).
 
 ## Scenario: audit trail for regulated writes
 

@@ -61,13 +61,15 @@ new Rs256JwksJwtVerifier(
     bool $requireExpiration = true,
     ?int $maxLifetimeSeconds = null,
     int $maxTokenLength = 8192,
-    array $allowedAlgorithms = ['RS256']
+    array $allowedAlgorithms = ['RS256'],
+    int $kidMissRefreshCooldownSeconds = 30 // v1.1.0
 );
 ```
 
 - `expectedIssuer` / `expectedAudience` — strict equality; `aud` may be a string or a list inside the token.
 - `requireExpiration` — `true` by default. Tokens without `exp` are rejected.
-- `maxLifetimeSeconds` — caps `exp - iat`. A misissued token with a 100-year lifetime is rejected before claims are trusted.
+- `maxLifetimeSeconds` — caps `exp - iat`. A misissued token with a 100-year lifetime is rejected before claims are trusted. *(v1.1.0)* When set, tokens must carry **both `iat` and `exp`**; a token without `iat` no longer bypasses the cap.
+- `kidMissRefreshCooldownSeconds` *(v1.1.0)* — minimum seconds between unknown-`kid` triggered `refresh()` calls per verifier instance, so a flood of tokens with bogus `kid`s cannot hammer the JWKS endpoint. `0` disables the cooldown.
 - `maxTokenLength` — guards against giant tokens before parsing.
 - `allowedAlgorithms` — explicit list. `none` and any `HS*` value is rejected at construction even if accidentally configured. Currently supported: `RS256` and `ES256`.
 
@@ -76,7 +78,7 @@ new Rs256JwksJwtVerifier(
 The verifier deliberately refuses to be permissive:
 
 - **Strict `kid` match.** Only keys whose `kid` matches the token header are considered. There is no "try every key" fallback.
-- **One refresh, one retry.** If the `kid` is unknown, the JWKS provider is asked to `refresh()` and the lookup is retried once. Misses still fail closed.
+- **One refresh, one retry.** If the `kid` is unknown, the JWKS provider is asked to `refresh()` and the lookup is retried once. Misses still fail closed. *(v1.1.0)* Unknown-`kid` refreshes are additionally rate-limited by `kidMissRefreshCooldownSeconds`, and `HttpJwksProvider` enforces its own persisted refresh cooldown on top.
 - **Algorithm pinning.** `none` and `HS*` are rejected at construction. The token `alg` must match an entry in `allowedAlgorithms`.
 - **Public-only JWK shape.** RSA keys must declare `kty=RSA` and carry `n` + `e`. ES256 keys must declare `kty=EC`, `crv=P-256`, and carry `x` + `y`. Optional `use` must be `sig`. Optional `alg` must match the token algorithm.
 - **Private fields stripped.** `JwksKeySanitizer` filters JWKs through an explicit allowlist (`alg`, `crv`, `e`, `kid`, `kty`, `n`, `use`, `x`, `y`) before any provider hands them to the verifier — even if a misbehaving JWKS endpoint includes private components like `d`.
@@ -97,14 +99,19 @@ new HttpJwksProvider(
     ?callable $httpGet = null,
     ?callable $getTransient = null,
     ?callable $setTransient = null,
-    ?callable $deleteTransient = null
+    ?callable $deleteTransient = null,
+    int $minimumRefreshIntervalSeconds = 30, // v1.1.0
+    ?callable $now = null                    // v1.1.0
 );
 ```
 
-- `jwksUri` **must** be `https`. The constructor throws otherwise.
-- The default HTTP client uses `wp_safe_remote_get` with `sslverify => true` and a `10` second timeout. **Since 1.0.0** it also bounds redirects (`redirection => 1`) and caps `limit_response_size`: `wp_safe_remote_get` applies WordPress's SSRF protection (blocking internal/loopback hosts), and the bounds harden against a hostile or misbehaving issuer redirecting internally or returning an unbounded body. Non-200 responses, empty bodies, and `WP_Error` returns throw `RuntimeException`.
+- `jwksUri` **must** be `https`. *(v1.1.0)* Validation is stricter: the URI must parse with a host and must not embed `user:pass` credentials. The constructor throws otherwise.
+- The default HTTP client uses `wp_safe_remote_get` with `sslverify => true` and a `10` second timeout. **Since 1.0.0** it also bounds redirects (`redirection => 1`) and caps `limit_response_size`: `wp_safe_remote_get` applies WordPress's SSRF protection (blocking internal/loopback hosts), and the bounds harden against a hostile or misbehaving issuer redirecting internally or returning an unbounded body. Non-200 responses, empty bodies, and `WP_Error` returns throw `RuntimeException`. *(v1.1.0)* `wp_safe_remote_get` is **required** — the previous fallback to plain `wp_remote_get` (no SSRF guard) was removed.
 - The default cache key is `better_route_jwks_<sha1($jwksUri)>`. Pass `cacheKey` if you want a stable identifier across deploys.
 - `issuer` is informational — used by the cache invalidation hook below.
+- `minimumRefreshIntervalSeconds` *(v1.1.0)* — persisted cooldown between `refresh()` calls (default 30s). The cooldown is marked **before** the fetch, so failing fetches are throttled too, and it is shared across requests via a transient — a burst of unknown-`kid` tokens across PHP workers cannot stampede the issuer.
+
+*(v1.1.0)* Refresh and cache-fill run under a MySQL advisory lock (`GET_LOCK`, 2s wait) when `$wpdb` is available, so concurrent requests do not fetch the same JWKS in parallel. If a refresh fetch fails, the provider **keeps the last known-good keys** (cached set stays intact) instead of serving an empty key set.
 
 ### `StaticJwksProvider`
 
@@ -156,9 +163,11 @@ When the provider was built with an `issuer`, the issuer-scoped variant only cle
 
 Trigger this from your auth provisioning flow when you rotate keys, or from a CLI/cron job after a webhook from the issuer.
 
+*(v1.1.0)* The hook clears the cache **and** the refresh cooldown, so a deliberate rotation takes effect immediately. Direct `refresh()` calls, by contrast, respect `minimumRefreshIntervalSeconds` and become no-ops inside the cooldown window.
+
 ## Validation checklist
 
-- a token with an unknown `kid` triggers a single JWKS refresh, then `401 invalid_token`;
+- a token with an unknown `kid` triggers a single JWKS refresh (subject to the v1.1.0 cooldowns), then `401 invalid_token`;
 - a token signed with a key whose `use !== 'sig'` is rejected;
 - `none` / `HS*` configured in `allowedAlgorithms` throws at construction;
 - `HttpJwksProvider` rejects non-`https` URIs;

@@ -73,6 +73,8 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `total`
 
 Each line item accepts: `product_id` (required), `variation_id`, `quantity`, `subtotal`, `total`, `meta_data`.
 
+**Since 1.1.0:** line items are validated before anything is persisted — unknown keys return `400 validation_failed` (`field not allowed`), `product_id` must reference an existing product, `quantity` must be a positive integer, and `subtotal`/`total` must be non-negative numbers.
+
 **Since 1.0.0:** when a line item supplies a `variation_id`, the order is built from the actual variation product (validated to belong to the given `product_id`), so its price, name, and attributes come from the variation — not the parent product. A `variation_id` that does not belong to `product_id` is rejected with `400 validation_failed`.
 
 On update, providing `line_items` replaces all existing items and totals are recalculated automatically.
@@ -80,6 +82,12 @@ On update, providing `line_items` replaces all existing items and totals are rec
 **Since 1.0.0:** replacing line items on an order that has already reduced stock is rejected with `409 woo_line_items_locked`, because removing and re-adding items would silently corrupt inventory. Edit line items before stock reduction, or adjust a stock-reduced order through status transitions.
 
 ## Money and validation
+
+**Since 1.1.0:**
+
+- The whole payload is validated **before** persistence: scalar fields (`status`, `currency`, `payment_method`, `payment_method_title`, `customer_note`) must be strings, `set_paid` must be a boolean, and a non-zero `customer_id` must reference an existing user — violations return `400 validation_failed` without touching the order.
+- Create and update run inside a WooCommerce transaction (`wc_transaction_query`): if any part of the write fails, the whole order write is rolled back instead of persisting a half-built order.
+- List sorting always appends an `ID` tie-breaker, so pagination is deterministic when many orders share the same sort value (e.g. `total`).
 
 **Since 1.0.0:**
 
@@ -94,6 +102,8 @@ When `set_paid` is `true`, `payment_complete()` is called after save. This trigg
 ## Address fields
 
 Both `billing` and `shipping` accept: first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone.
+
+**Since 1.1.0:** unknown keys inside `billing`/`shipping` are rejected with `400 validation_failed` (`field not allowed`), and every address value must be a string (values are no longer silently cast). The OpenAPI address schemas declare `additionalProperties: false` to match.
 
 ## Delete mode (v0.3.0)
 

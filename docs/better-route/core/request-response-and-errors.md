@@ -41,9 +41,12 @@ Handlers may return:
 
 ## Exception mapping
 
-- `ApiException`: status/errorCode/details preserved
+- `ApiException`: status/errorCode/details preserved. *(v1.1.0)* Also accepts a `headers` array that is emitted on the error response — this is how rate limiting attaches `Retry-After` and `X-RateLimit-*` to `429`s. The constructor validates its inputs: status must be `400`–`599`, the error code must match `[A-Za-z0-9._:-]+`, and header names/values are checked against response-header injection (no CR/LF, token-only names).
 - `InvalidArgumentException` (uncaught): `400` with `invalid_request`. **Since 1.0.0** the message is normalized to `"Invalid request."` and `details` is empty — the exception class name and raw message are no longer exposed (earlier versions put the class name in `details.exception` as a developer aid)
 - other throwables: `500` with `internal_error`; **message normalized to `"Unexpected error."`** and `details` is empty *(v0.3.0)* — internal exception class and message never leak
+- `WP_Error`: *(v1.1.0)* error data is no longer copied wholesale into `details` — WP_Error data is arbitrary and may carry SQL/debug context. Only the core REST validation map (`params`) passes through, and a status outside `400`–`599` is coerced to `500`.
+
+*(v1.1.0)* `BetterRoute\Http\Response` itself validates on construction: status must be `100`–`599`, and header names/values are rejected on CR/LF or non-token names — a handler (or middleware replaying a stored response) cannot smuggle headers through the response object.
 
 ## OAuth error format *(v0.6.0)*
 

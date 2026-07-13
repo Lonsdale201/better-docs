@@ -39,11 +39,11 @@ Optional fields:
 | `ApiException` with `errorCode` | as-is | `errorCode` |
 | `InvalidArgumentException` | `400` | `invalid_request` |
 | any other throwable | `500` | `server_error` |
-| `WP_Error` | from `data.status` (default `400`) | the WP error code |
+| `WP_Error` | from `data.status` (default `400`; out-of-range values normalize to `400` *(v1.1.0)*) | the WP error code |
 
 `internal_error` is rewritten to `server_error` for `5xx` responses to match the RFC.
 
-The exception message becomes `error_description`. For non-`ApiException` 5xx, the message is normalized to `"Unexpected error."` so handler internals never leak.
+Only an `ApiException` message becomes `error_description` verbatim. *(v1.1.0)* Every other throwable is normalized — `"Invalid request."` for `400`, `"Unexpected error."` otherwise — so handler internals never leak. `ApiException` response `headers` are emitted with the OAuth-shaped response too, and `WP_Error` details are allowlisted to the core REST `params` map.
 
 ## Worked example: authorization code consumption
 

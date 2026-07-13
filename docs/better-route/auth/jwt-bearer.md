@@ -22,7 +22,7 @@ $verifier = new Hs256JwtVerifier(
     expectedIssuer: 'https://issuer.example.com',
     expectedAudience: 'myapp',
     requireExpiration: true,        // v0.3.0 default — set false to allow tokens without `exp`
-    maxLifetimeSeconds: 3600,       // optional cap on `exp - iat`
+    maxLifetimeSeconds: 3600,       // optional cap on `exp - iat`; requires both `iat` and `exp` (v1.1.0)
     maxTokenLength: 8192             // v0.3.0 default
 );
 
@@ -43,7 +43,7 @@ $jwtMiddleware = new JwtAuthMiddleware(
 
 - **`exp` required** by default (`requireExpiration: true`). Tokens without `exp` are rejected unless explicitly disabled.
 - **`expectedIssuer` / `expectedAudience`** for strict `iss` / `aud` validation when set. `aud` matches against either a string or a list of audiences in the token.
-- **`maxLifetimeSeconds`** rejects tokens whose `exp - iat` exceeds the cap.
+- **`maxLifetimeSeconds`** rejects tokens whose `exp - iat` exceeds the cap. *(v1.1.0)* When the cap is configured, tokens must carry **both `iat` and `exp`** — previously a token without `iat` skipped the lifetime check entirely; now it is rejected (`401 invalid_token`). Applies to `Hs256JwtVerifier` and `Rs256JwksJwtVerifier` alike.
 - **`maxTokenLength`** (`8192` bytes) rejects oversized tokens before parsing.
 
 `WpClaimsUserMapper` defaults changed: `idClaims` is now `['user_id', 'uid', 'wp_user_id']`. Re-add `'sub'` explicitly if your tokens use it as the WP user identifier.
@@ -111,6 +111,7 @@ $jwtMiddleware = new JwtAuthMiddleware(
 - Expecting scopes from an unsupported claim shape
 - *(v0.3.0)* issuing tokens without `exp` while `requireExpiration` is on
 - *(v0.3.0)* relying on `sub` for WP user mapping without re-adding it to `WpClaimsUserMapper::$idClaims`
+- *(v1.1.0)* issuing tokens without `iat` while `maxLifetimeSeconds` is configured — the lifetime cap now requires both `iat` and `exp`
 
 ## Validation checklist
 

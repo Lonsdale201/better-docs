@@ -41,6 +41,12 @@ Resource::make('raw-articles')
 - prefixed table resolution via `$wpdb->prefix`
 - *(v0.3.0)* cross-database table names (containing `.`) are rejected
 - *(v0.3.0)* structured (array/object) write payloads are rejected at the storage boundary
+- *(v1.1.0)* `null` payload values are written as **real SQL `NULL`** on insert and update (previously they could be coerced to a string placeholder)
+
+## Deterministic ordering (v1.1.0)
+
+- With no `sort` requested, lists are ordered by the **primary key** (previously unordered — MySQL could return rows in any order).
+- With an explicit sort field, the primary key is appended as a **tie-breaker** in the same direction, so rows with equal sort values keep a stable position across pages.
 
 ## Scenario: ingestion rows with typed filters
 

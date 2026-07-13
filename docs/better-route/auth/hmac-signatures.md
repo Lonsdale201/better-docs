@@ -107,6 +107,8 @@ $context->attributes['hmac'] === [
 ];
 ```
 
+*(v1.1.0)* The middleware also records the shared auth identity (`auth` attribute with `provider: 'hmac'`, `subject: <keyId>`), so identity-scoped middleware — rate limiting, caching, idempotency — keys on the HMAC key id instead of treating the caller as an anonymous IP.
+
 The raw secret is never reflected.
 
 ## Secret providers
@@ -144,7 +146,7 @@ The middleware fails closed for unknown key ids, so removing a `kid` immediately
 
 ## Combining with other middleware
 
-- Place `HmacSignatureMiddleware` **before** rate limiting so unauthenticated traffic does not consume the limit budget.
+- Place `HmacSignatureMiddleware` **before** rate limiting so unauthenticated traffic does not consume the limit budget. *(v1.1.0)* With this order the rate limiter automatically scopes per HMAC key id via the shared auth identity.
 - Combine with `IpAllowlistMiddleware` to restrict to known proxy networks (e.g. the partner's outbound CIDRs).
 - HMAC routes are usually `->publicRoute()` from WordPress's perspective. The middleware is the actual auth.
 

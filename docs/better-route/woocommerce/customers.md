@@ -65,11 +65,16 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 
 ## Notes
 
-- `email` is required on create and must be unique.
-- `username` is create-only. It cannot be changed after creation.
+- `email` is required on create and must be unique. *(v1.1.0)* the create route's OpenAPI schema is `WooCustomerCreateInput`, which marks `email` as required.
+- `username` is create-only. It cannot be changed after creation. *(v1.1.0)* sending `username` in an update payload returns `400 validation_failed`; previously it was silently ignored.
 - `password` is write-only. It is never returned in responses.
 - Address fields (billing/shipping): first_name, last_name, company, address_1, address_2, city, state, postcode, country, email, phone.
 - Delete uses `wp_delete_user()` and permanently removes the WordPress user.
+
+**Since 1.1.0:**
+
+- The whole payload is validated before persistence: `email`, `first_name`, `last_name`, `username`, and `password` must be strings, unknown keys inside `billing`/`shipping` return `400 validation_failed` (`field not allowed`), and address values must be strings (no silent casting). The OpenAPI address schema declares `additionalProperties: false` to match.
+- List sorting always appends an `ID` tie-breaker, so pagination is deterministic when many customers share the same sort value.
 
 **Since 1.0.0:**
 

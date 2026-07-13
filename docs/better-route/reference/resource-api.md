@@ -35,7 +35,7 @@ title: Resource API Reference
 ## CPT-specific controls
 
 - `cptVisibleStatuses(array $statuses)`
-- `cptVisibilityPolicy(callable $policy)`
+- `cptVisibilityPolicy(callable $policy)` — *(v1.1.0)* the per-item callback is evaluated against every matching repository page so `total`/pagination stay truthful; for large datasets prefer a query-level filter or repository condition. See [CPT Resource](../resources/cpt-resource).
 
 ## Repository injection
 

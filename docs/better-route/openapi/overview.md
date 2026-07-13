@@ -18,6 +18,7 @@ OpenAPI support is metadata-driven. Since `v0.2.0` it includes security scheme s
 - `parameters`
 - `requestSchema`
 - `responseSchema`
+- `responses`
 - `openapi.include`
 
 `openapi.include=false` routes are excluded by default.
@@ -26,6 +27,13 @@ OpenAPI support is metadata-driven. Since `v0.2.0` it includes security scheme s
 
 - full automatic schema inference from arbitrary PHP runtime types
 - advanced polymorphism/discriminator generation
+
+## What is new in v1.1.0
+
+- Executable route `args` are exported automatically as `path`/`query` parameters (type, `default`, `enum`, `format`, `minimum`/`maximum`, `minLength`/`maxLength`, `pattern`, and `description` are carried over). List filters and pagination params no longer need a duplicate `meta.parameters` declaration.
+- Explicit `meta.parameters` entries override a derived parameter with the same `name` and `in` location; derived parameters without an explicit counterpart are kept.
+- `OPTIONS` operations are documented with a `204` success response (no content).
+- Custom `meta.responses` entries now **replace** the generated defaults for the same status code (previously the defaults won), so a route can override the success response or the `default` error reference.
 
 ## What is new in v0.2.0
 

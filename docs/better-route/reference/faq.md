@@ -12,7 +12,11 @@ Yes, since `v0.2.0`. The WooCommerce integration layer provides full CRUD for Or
 
 ## Is package registry publishing available now?
 
-Not yet. Current install flow is local/path repository; registry release can be added later.
+Yes. Since v1.0.0 the library is published on [Packagist](https://packagist.org/packages/better-route/better-route):
+
+```bash
+composer require better-route/better-route:^1.1
+```
 
 ## Does middleware auth replace `permission_callback`?
 

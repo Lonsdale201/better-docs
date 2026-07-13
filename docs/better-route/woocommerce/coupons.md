@@ -60,11 +60,18 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `code`
 
 ## Notes
 
-- `code` is required on create and must be a non-empty string.
+- `code` is required on create and must be a non-empty string. *(v1.1.0)* the create route's OpenAPI schema is `WooCouponCreateInput`, which marks `code` as required.
 - `discount_type` accepts: `percent`, `fixed_cart`, `fixed_product`.
 - `product_ids` and `excluded_product_ids` are arrays of integers.
 - `email_restrictions` is an array of email address strings.
 - `date_expires` accepts an ISO date string or `null`.
+
+**Since 1.1.0:**
+
+- The uniqueness check now also applies to **updates**: changing a coupon's `code` to one that another coupon already uses is rejected with `409 coupon_exists` (the coupon's own id is excluded, so re-saving the same code is fine).
+- Writes that set `code` are serialized under a per-code MySQL advisory lock, so two concurrent requests cannot both pass the uniqueness check and create duplicates. If the lock cannot be acquired within 2 seconds, the request fails with `409 coupon_write_in_progress`.
+- The whole payload is validated before persistence: string fields must be strings, `amount` / `minimum_amount` / `maximum_amount` must be non-negative numbers, `usage_limit` / `usage_limit_per_user` / `limit_usage_to_x_items` must be non-negative integers, boolean fields reject unrecognized values, and `product_ids` / `excluded_product_ids` / `email_restrictions` are type-checked — all with `400 validation_failed`.
+- List sorting always appends an `ID` tie-breaker, so pagination is deterministic when many coupons share the same sort value.
 
 **Since 1.0.0:**
 

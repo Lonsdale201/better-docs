@@ -22,12 +22,23 @@ On success, middleware writes auth context attributes:
 
 - `auth` (provider, userId, subject, scopes)
 - optionally `claims`, `userId`, `user`, `scopes`
-- `hmac` *(v0.6.0)* — `keyId` and `algorithm` after successful HMAC signature verification
+- `hmac` *(v0.6.0)* — `keyId` and `algorithm` after successful HMAC signature verification. *(v1.1.0)* HMAC verification now also writes the shared `auth` attribute (`provider: 'hmac'`, `subject: <keyId>`), so identity-scoped middleware sees HMAC callers like any other authenticated identity.
 - `singleUseToken` *(v0.6.0)* — issuer-supplied context after a single-use token is consumed
+
+*(v1.1.0)* Identity-scoped middleware (caching, idempotency, rate limiting) resolves the caller through `BetterRoute\Support\RequestIdentity`: the `auth` attribute first, then a `userId` attribute, then the **native WordPress user** (`get_current_user_id()`), then the HMAC key id. A logged-in WP user is therefore scoped correctly even when no auth middleware is attached to the route.
 
 ## Important policy note
 
 Even with auth middleware, route registration still requires explicit `permission_callback` (by design in dispatcher integration). For middleware-authenticated routes, declare the intent with `->protectedByMiddleware(...)` (since 0.4.0). For routes guarded by HMAC or single-use tokens (no WordPress user behind them), use `->publicRoute()` and let the middleware be the gate.
+
+*(v1.1.0)* This now applies to **every** HTTP method: raw `Router` routes — `GET` and `OPTIONS` included — deny by default until you declare intent with `->permission()`, `->protectedByMiddleware()`, or `->publicRoute()`. See [Router](../core/router).
+
+## v1.1.0 hardening
+
+- **All raw routes deny by default.** `GET`/`OPTIONS` are no longer public without explicit intent (see the policy note above).
+- **JWT lifetime cap requires `iat` + `exp`.** With `maxLifetimeSeconds` configured, tokens missing either claim are rejected instead of skipping the check. See [JWT and Bearer](jwt-bearer).
+- **JWKS refresh throttling.** Unknown-`kid` refreshes respect per-verifier and persisted provider cooldowns, run under a MySQL advisory lock, and keep the last known-good keys when a fetch fails. See [JWKS (RS256 / ES256)](jwks-rs256).
+- **Shared identity resolution.** `RequestIdentity` scopes cache/idempotency/rate-limit keys by auth identity, native WP user, or HMAC key id (see Context propagation above).
 
 ## v1.0.0 hardening
 

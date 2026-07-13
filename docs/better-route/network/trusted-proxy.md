@@ -43,6 +43,8 @@ $rateLimit = new RateLimitMiddleware(
 
 `RateLimitMiddleware`'s `$clientIpResolver` argument now accepts either the legacy `Http\ClientIpResolver` or any `Middleware\Network\ClientIpResolverInterface`.
 
+*(v1.1.0)* The resolved IP is only the rate-limit fallback identity — authenticated callers (WP user, JWT subject, HMAC key id) are scoped by identity instead. `TransientRateLimiter` in its default WordPress configuration now serializes counter updates with a MySQL advisory lock rather than a racy read/modify/write.
+
 ## Constructor
 
 ```php

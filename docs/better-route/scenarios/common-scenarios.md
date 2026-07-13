@@ -41,7 +41,11 @@ $router->patch('/orders/(?P<id>\d+)', $updateOrder)
 Expected failures:
 
 - missing idempotency key -> `400 idempotency_key_required`
+- malformed/over-length idempotency key -> `400 idempotency_key_invalid` *(v1.1.0)*
 - stale version -> `412 optimistic_lock_failed`
+- missing expected version (when required) -> `428 precondition_required`
+
+*(v1.1.0)* Version resolution and the write run inside a per-resource MySQL critical section, so cooperating Better Route writers cannot race between the version check and the write. Writers outside this protocol are not serialized — see [Optimistic locking](../write-safety/optimistic-locking).
 
 ## Scenario 3: OpenAPI endpoint from mixed sources
 
@@ -55,7 +59,7 @@ OpenApiRouteRegistrar::register(
         $articlesResource,
         $rawArticlesResource,
     ]),
-    options: ['title' => 'Better Route API', 'version' => 'v0.2.0']
+    options: ['title' => 'Better Route API', 'version' => 'v1.1.0']
 );
 ```
 

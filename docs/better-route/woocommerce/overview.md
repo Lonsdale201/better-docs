@@ -23,9 +23,13 @@ This registers all four resource groups under `/wp-json/myplugin/v1/woo/`.
 - Pagination with `page` / `per_page` and `X-WP-Total` / `X-WP-TotalPages` headers
 - Sortable lists with `?sort=-date_created` (prefix `-` for DESC)
 - Optional HPOS guard on **order** routes: `503` if WooCommerce unavailable, `503` if HPOS required but disabled *(v1.0.0: was `409`; product / coupon / customer routes are not HPOS-gated)*
-- Optional idempotency middleware on write endpoints (transient-, array-, or `wpdb`-backed)
+- Optional idempotency middleware on write endpoints — *(v1.1.0)* atomic, lease-based, `wpdb`-backed by default (see [Configuration](configuration))
 - OpenAPI component schemas via `BetterRoute::wooOpenApiComponents()`
 - *(v0.3.0)* configurable `deleteMode` (`'force'` or `'trash'`) for orders / products / coupons
+- *(v1.1.0)* strict write-payload validation before persistence — typed fields, unknown nested keys rejected with `400`
+- *(v1.1.0)* order create/update runs inside a WooCommerce transaction (`wc_transaction_query`), so a failed write never persists a half-built order
+- *(v1.1.0)* deterministic list pagination — every sort gets an `ID` tie-breaker, so rows with equal sort values cannot repeat or vanish across pages
+- *(v1.1.0)* WordPress global REST parameters (`_fields`, `_locale`, `_embed`, `_envelope`, `_jsonp`) are accepted by the unknown-param check instead of returning `400`
 - *(v0.3.0)* customer endpoints restricted to the `customer` role; create/update/delete gated by `create_users` / `edit_user` / `delete_user`
 - *(v0.3.0)* protected meta keys (`_...`) hidden from output and rejected on write by default
 

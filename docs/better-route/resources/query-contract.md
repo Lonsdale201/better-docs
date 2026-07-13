@@ -19,6 +19,10 @@ Resource list endpoints are strict by design.
 - Unsupported sort field -> `400 validation_failed`
 - Offset greater than `maxOffset` -> `400 validation_failed`
 
+## Deterministic ordering (v1.1.0)
+
+List results are stably ordered: the primary key (table resources) or `ID` (CPT resources) is appended as a tie-breaker to every sort, and it is the default order when no `sort` is requested (CPT default: `date` + `ID`). Identical sort values no longer cause rows to swap between pages.
+
 ## Typed filter schema
 
 `filterSchema()` supports:

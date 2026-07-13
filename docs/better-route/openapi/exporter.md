@@ -16,7 +16,7 @@ $contracts = array_merge(
 
 $document = (new OpenApiExporter())->export($contracts, [
     'title' => 'better-route API',
-    'version' => 'v0.4.0',
+    'version' => 'v1.1.0',
     'description' => 'Contract-first API',
     'serverUrl' => '/wp-json',
     'openapiVersion' => '3.1.0',
@@ -46,6 +46,9 @@ $document = (new OpenApiExporter())->export($contracts, [
 - Path params are forced `required=true`
 - Unsupported HTTP methods are skipped
 - `default` response references `#/components/responses/ErrorResponse`
+- *(v1.1.0)* Executable route `args` are exported as `path`/`query` parameters automatically; explicit `meta.parameters` entries override derived ones with the same `name` + `in`
+- *(v1.1.0)* `OPTIONS` operations emit a `204` success response without content; `HEAD` responses carry no content schema
+- *(v1.1.0)* Custom `meta.responses` replace the generated default for the same status code (previously the default won)
 
 ## Common mistakes
 

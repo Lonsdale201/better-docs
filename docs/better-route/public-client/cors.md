@@ -2,7 +2,7 @@
 title: CORS / Preflight
 ---
 
-`CorsMiddleware` *(v0.5.0)* gives a public-client REST surface a deliberate CORS contract instead of relying on default WordPress behavior. Pair it with `Router::options()` for explicit preflight endpoints.
+`CorsMiddleware` *(v0.5.0)* gives a public-client REST surface a deliberate CORS contract instead of relying on default WordPress behavior. Since v1.1.0 it also installs a **WordPress CORS bridge** at `Router::register()` time, which answers preflight before WordPress dispatches the route and keeps the configured allowlist authoritative over core CORS headers — explicit `Router::options()` preflight routes are no longer required.
 
 ## Minimal example
 
@@ -19,6 +19,21 @@ $router->middleware([
 ```
 
 The policy applies to every route inside the router/group. Preflight `OPTIONS` requests short-circuit with `204` and the negotiated headers — the handler is not called.
+
+Attach the middleware **before** calling `Router::register()` — registration is the moment each matched route is announced to the WordPress bridge *(v1.1.0)*.
+
+## WordPress CORS bridge *(v1.1.0)*
+
+`CorsMiddleware` implements `WordPressRouteMiddlewareInterface`. When a route carrying it is registered, the route pattern is recorded in `WordPressCorsBridge`, which hooks two WordPress filters:
+
+- `rest_pre_dispatch` (priority 9) — if the incoming request is a CORS preflight for a matched route, the bridge responds immediately: `204` with the negotiated headers for an allowed origin, or `403 cors_origin_denied` when the origin is disallowed and `rejectDisallowedOrigins` is `true`. The route callback and its `permission_callback` never run, so preflight works even though `OPTIONS` routes deny by default since v1.1.0.
+- `rest_pre_serve_request` (priority 20) — for matched routes, the bridge removes the `Access-Control-*` headers WordPress core emitted and replaces them with the policy's headers, merging `Vary` tokens. The configured allowlist is authoritative; core's permissive defaults cannot leak through.
+
+The bridge only affects routes that carry `CorsMiddleware` — the rest of the REST API keeps WordPress default behavior.
+
+## Configuration validation *(v1.1.0)*
+
+`CorsPolicy` validates its configuration at construction and throws `InvalidArgumentException` for: origins that are not valid serialized origins (`scheme://host[:port]`, no path/query/fragment/userinfo, no CR/LF), method or header names that are not valid HTTP tokens, and negative `maxAgeSeconds`. This blocks response-header injection through configuration values.
 
 ## `CorsPolicy` constructor
 
@@ -66,13 +81,16 @@ When `rejectDisallowedOrigins` is `true` (default) and the request carries an `O
 
 ## Preflight endpoints
 
-WordPress does not register `OPTIONS` handlers automatically. 0.5.0 adds `Router::options()` and a public-by-default permission for `OPTIONS` routes:
+Since v1.1.0 you normally don't need any: the WordPress bridge answers preflight for every route that carries `CorsMiddleware`, before WordPress even dispatches the request.
+
+Explicit `Router::options()` routes *(v0.5.0)* still work — for example when you want a preflight-like endpoint in the OpenAPI document. Note that since v1.1.0 `OPTIONS` routes deny by default like every other method, so an explicit preflight route needs explicit intent:
 
 ```php
-$router->options('/account/orders/(?P<id>\d+)', static fn () => null);
+$router->options('/account/orders/(?P<id>\d+)', static fn () => null)
+    ->publicRoute();
 ```
 
-The handler body is irrelevant — `CorsMiddleware` short-circuits with `204` and the negotiated headers before the handler runs. The route exists so WordPress dispatches the method to better-route in the first place.
+The handler body is irrelevant — the bridge (or `CorsMiddleware` in the pipeline) short-circuits with `204` and the negotiated headers before the handler runs.
 
 ## Origin echo behavior
 
@@ -108,7 +126,7 @@ $router->group('/account', function (Router $r) use ($jwt): void {
 
 - Adding `CorsMiddleware` after auth — preflight requests are rejected with `401`.
 - Using `['*']` with `allowCredentials: true` — **since 1.0.0 this throws at construction**. Reflecting an arbitrary origin back with credentials defeats the same-origin policy; list explicit origins when credentials are enabled.
-- Forgetting to register `OPTIONS` routes — WP dispatches a `404` before better-route sees the request.
+- Attaching `CorsMiddleware` after `Router::register()` has already run — the bridge never learns about the routes, so preflight falls through to WordPress defaults.
 - Stripping default exposed headers — clients lose access to `ETag`, `Idempotency-Replayed`, and rate-limit telemetry.
 
 ## Validation checklist

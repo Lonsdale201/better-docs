@@ -30,8 +30,8 @@ $router = \BetterRoute\BetterRoute::wooRouteRegistrar()
         'actions' => [
             'orders'    => ['list', 'get', 'create', 'update', 'delete'],
             'products'  => ['list', 'get', 'create', 'update', 'delete'],
-            'customers' => ['list', 'get', 'create', 'update', 'delete'],
-            'coupons'   => ['list', 'get', 'create', 'update', 'delete'],
+            'customers' => ['list', 'get'],
+            'coupons'   => [], // v1.1.0: empty list disables the resource entirely
         ],
         'idempotency' => [
             'enabled'    => false,
@@ -70,14 +70,18 @@ Per-resource capability string. The capability is checked via `current_user_can(
 **actions** (array)
 Per-resource list of enabled actions. Omit an action to disable its route entirely. Valid values: `list`, `get`, `create`, `update`, `delete`.
 
+**Since 1.1.0:** an explicit empty list (`'coupons' => []`) disables the resource entirely — no coupon routes are registered. (Before 1.1.0 an empty list silently fell back to the full action set.) Unknown action names and non-array values are now rejected with an `InvalidArgumentException` at registration time instead of being silently ignored.
+
 **idempotency** (array)
-Controls the `IdempotencyMiddleware` on POST/PUT/PATCH routes.
+Controls the idempotency middleware on POST/PUT/PATCH routes. **Since 1.1.0** this is the [`AtomicIdempotencyMiddleware`](../write-safety/atomic-idempotency) (reservation-based, safe for side-effectful writes), and it is attached to **all four** resources' create/update routes — before 1.1.0 the `customers` / `coupons` toggles existed but no middleware was wired to those routes.
 
 - `enabled`: master switch (default `false`)
 - `requireKey`: if true, POST/PUT/PATCH without `Idempotency-Key` header returns `400` (default `false`)
-- `ttlSeconds`: how long a cached response is kept (default `300`)
-- `store`: an `IdempotencyStoreInterface` instance. Defaults to `TransientIdempotencyStore` in production, `ArrayIdempotencyStore` in tests. Use `WpdbIdempotencyStore` for cross-flush persistence (v0.3.0).
+- `ttlSeconds`: how long a reservation/response is kept (default `300`)
+- `store`: an `AtomicIdempotencyStoreInterface` instance *(v1.1.0; was `IdempotencyStoreInterface`)*. See the default-store note below.
 - `resources`: per-resource toggle — set to `false` to disable idempotency for a specific resource
+
+**Default idempotency store *(v1.1.0)*:** when `store` is omitted and `$wpdb` is available, the registrar uses the lease-aware `WpdbAtomicIdempotencyStore` and installs/migrates its table via `installSchema()`. A versioned option (`better_route_atomic_idempotency_schema_version`) prevents repeated DDL/schema checks once install succeeded; a schema/install failure is reported as an error instead of silently degrading to a request-local store. `ArrayAtomicIdempotencyStore` (request-local, for tests/non-WP runtimes) is used only when no `$wpdb` exists. When idempotency is enabled, the write routes' OpenAPI meta automatically documents the `Idempotency-Key` header parameter (marked required when `requireKey` is true).
 
 **deleteMode** (string, default `'force'`) *(v0.3.0)*
 Applies to orders, products, and coupons. `'force'` permanently deletes the entity; `'trash'` moves it to the trash so it can be restored.

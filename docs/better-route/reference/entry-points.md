@@ -20,7 +20,7 @@ Usage:
 
 ```php
 $exporter = BetterRoute::openApiExporter();
-$document = $exporter->export($contracts, ['version' => 'v1.0.0']);
+$document = $exporter->export($contracts, ['version' => 'v1.1.0']);
 ```
 
 ### `BetterRoute::wooRouteRegistrar(): WooRouteRegistrar`
@@ -54,6 +54,6 @@ HposGuard::declareCompatibility(__FILE__);
 
 ## Version marker
 
-The latest released Composer tag is `v1.0.0`.
+The latest released Composer tag is `v1.1.0`.
 
-`BetterRoute\Support\Version::VERSION` is the in-source marker; treat the Composer tag as the source of truth and align documentation against `v1.0.0` behavior.
+`BetterRoute\Support\Version::VERSION` is the in-source marker; treat the Composer tag as the source of truth and align documentation against `v1.1.0` behavior.

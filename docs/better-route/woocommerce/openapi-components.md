@@ -40,12 +40,14 @@ $document = $exporter->export($contracts, [
 
 **Customers**
 - `WooCustomerAddress` — billing/shipping address fields
-- `WooCustomerInput` — customer create/update payload
+- `WooCustomerInput` — customer update payload
+- `WooCustomerCreateInput` *(v1.1.0)* — `WooCustomerInput` with `email` required (used by the create route)
 - `WooCustomer` — full customer response
 - `WooCustomerResponse` / `WooCustomerListResponse`
 
 **Coupons**
-- `WooCouponInput` — coupon create/update payload
+- `WooCouponInput` — coupon update payload
+- `WooCouponCreateInput` *(v1.1.0)* — `WooCouponInput` with `code` required (used by the create route)
 - `WooCoupon` — full coupon response
 - `WooCouponResponse` / `WooCouponListResponse`
 
@@ -53,6 +55,8 @@ $document = $exporter->export($contracts, [
 - `DeleteResponse` — `{data: {id, deleted}}`
 
 **Since 1.0.0:** monetary fields in these schemas are typed `string` (order `total` / `total_tax`, coupon `amount` / `minimum_amount` / `maximum_amount`, customer `total_spent`; line-item `total` / `subtotal` were already strings), matching how the API serializes money to avoid float drift.
+
+**Since 1.1.0:** the schemas match runtime validation exactly — `WooOrderAddress` / `WooCustomerAddress` declare `additionalProperties: false` (unknown address keys are rejected at runtime), `WooOrderLineItemInput` marks `product_id` as required, and `WooProductInput` no longer lists the read-only `price` field. When the registrar's idempotency option is enabled, write operations automatically document the `Idempotency-Key` header parameter (marked required when `requireKey` is true).
 
 ## Security schemes
 

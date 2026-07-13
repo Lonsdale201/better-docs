@@ -51,13 +51,19 @@ $router->middlewareFactory(function (string $class): mixed {
 - short-circuit does not execute handler
 - thrown exceptions are normalized to error envelope
 
-## Identity-aware default keys (v0.3.0)
+## Identity-aware default keys (v0.3.0, reworked in v1.1.0)
 
-`CachingMiddleware`, `IdempotencyMiddleware`, and `RateLimitMiddleware` derive default keys from the request identity:
+`CachingMiddleware`, `IdempotencyMiddleware`, `AtomicIdempotencyMiddleware`, and `RateLimitMiddleware` derive default keys from the request identity.
 
-- `auth.userId > 0` → `"{provider}:user:{userId}"`
-- `auth.subject` (non-empty) → `"{provider}:sub:{subject}"`
-- `RateLimitMiddleware` only: client IP fallback → `"ip:{clientIp}"`
-- otherwise → `"guest"`
+*(v1.1.0)* Identity resolution is centralized in `BetterRoute\Support\RequestIdentity` and the resolution order is:
 
-Pass an explicit `keyResolver` to keep pre-v0.3.0 keys.
+1. `auth.userId > 0` → provider-scoped user identity
+2. `auth.subject` (non-empty) → provider-scoped subject identity
+3. `userId` attribute (positive int)
+4. **native WordPress user** — `get_current_user_id()`, so a logged-in user is scoped correctly even when no auth middleware is attached to the route
+5. `hmac.keyId` — HMAC callers are scoped per key id
+6. otherwise → `"guest"` (`RateLimitMiddleware` falls back to the resolved client IP before giving up)
+
+Resolved identities are emitted as `identity:<sha256 of canonical JSON>` hashes rather than raw `provider:user:id` strings, so identity material does not appear verbatim in cache/transient keys.
+
+Pass an explicit `keyResolver` to keep custom keys.

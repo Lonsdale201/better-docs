@@ -44,17 +44,19 @@ new AtomicIdempotencyMiddleware(
     array $methods = ['POST', 'PUT', 'PATCH', 'DELETE'],
     ?callable $keyResolver = null,
     ?callable $fingerprintResolver = null,
-    bool $releaseOnThrowable = true
+    bool $releaseOnThrowable = false,
+    int $maxKeyLength = 200
 );
 ```
 
-- `store` — `AtomicIdempotencyStoreInterface` implementation. Use `WpdbAtomicIdempotencyStore` in production, `ArrayAtomicIdempotencyStore` in tests.
+- `store` — `AtomicIdempotencyStoreInterface` implementation. Use `WpdbAtomicIdempotencyStore` in production; `ArrayAtomicIdempotencyStore` is **for tests only**.
 - `ttlSeconds` — how long a reservation / completed record lives. Set to a multiple of the client retry window.
 - `requireKey` — when `true`, missing `Idempotency-Key` returns `400 idempotency_key_required`.
 - `methods` — request methods the middleware activates on. Other methods short-circuit.
-- `keyResolver(RequestContext, string $idempotencyKey): string` — override the default storage key. Default is `routePath | identity | idempotency-key`, identity-aware in the same way as `RateLimitMiddleware` / `CachingMiddleware`.
-- `fingerprintResolver(RequestContext): string` — override fingerprint hashing. Default uses sorted SHA-1 over `route + method + identity + json + body + query`.
-- `releaseOnThrowable` — when `true` (default), a thrown handler exception releases the reservation so the client can retry. Set to `false` only if you want errors to permanently consume the key.
+- `keyResolver(RequestContext, string $idempotencyKey): string` — override the default storage key. *(v1.1.0)* Default is a canonical JSON of `route + identity + idempotency-key` (`BetterRoute\Support\Canonicalizer`), identity-aware via `RequestIdentity` in the same way as `RateLimitMiddleware` / `CachingMiddleware`.
+- `fingerprintResolver(RequestContext): string` — override fingerprint hashing. *(v1.1.0)* Default is SHA-1 over a **deep canonical** JSON (`Canonicalizer::json`, recursive key sort) of `route + method + identity + json + body + query` — key order in the request payload no longer changes the fingerprint.
+- `releaseOnThrowable` — *(v1.1.0)* **default `false`**: a request that throws keeps its reservation until TTL expiry, so an uncertain side effect (charge attempted, outcome unknown) is not executed again by a blind retry. Set to `true` only when the handler is known to leave no side effects behind on failure and clients should be able to retry immediately.
+- `maxKeyLength` — *(v1.1.0)* keys longer than this (default `200`) or containing non-printable-ASCII characters are rejected with `400 idempotency_key_invalid`.
 
 ## Behavior matrix
 
@@ -64,8 +66,11 @@ new AtomicIdempotencyMiddleware(
 | Second request with same K and F, first still running | `409 idempotency_in_progress` |
 | Second request with same K and F, first completed | Replay saved response, adds `Idempotency-Replayed: true` |
 | Second request with same K, different fingerprint | `409 idempotency_conflict` |
-| Handler throws while reservation is open, `releaseOnThrowable=true` | Reservation removed, original exception re-thrown |
+| Handler throws while reservation is open (default) | Reservation **kept until TTL expiry**, original exception re-thrown; retries get `409 idempotency_in_progress` *(v1.1.0)* |
+| Handler throws, `releaseOnThrowable=true` | Reservation removed, original exception re-thrown |
+| Handler returns a `WP_Error` | Error passes through to the normalizer; reservation stays open (outcome uncertain) *(v1.1.0)* |
 | `requireKey=true` and no `Idempotency-Key` header | `400 idempotency_key_required` |
+| Key too long (`maxKeyLength`) or non-printable-ASCII | `400 idempotency_key_invalid` *(v1.1.0)* |
 
 ## Stores
 
@@ -76,13 +81,16 @@ new AtomicIdempotencyMiddleware(
 - Default table: `better_route_atomic_idempotency` (auto-prefixed with `$wpdb->prefix` when not already prefixed).
 - Cross-database table names (containing `.`) are rejected. Table names must match `^[A-Za-z_][A-Za-z0-9_]*$`.
 - Records expire on `expires_at`. Expired rows are deleted opportunistically on `reserve()`.
-- **Since 1.0.0** the completed response is restored with `unserialize()` restricted to the library's `Response` class (`['allowed_classes' => [Response::class]]`), as object-injection defense-in-depth.
-- Call `installSchema()` once on plugin activation.
+- *(v1.1.0)* Every reservation carries an **unforgeable lease token** (`reservation_token`, 16 random bytes). `completeReservation()` / `releaseReservation()` only act when the caller presents the token of the reservation it owns — a request that lost its reservation (TTL expiry + takeover) can no longer overwrite the new owner's record. The legacy `complete()` / `release()` methods throw on this store.
+- *(v1.1.0)* Responses are persisted through `StoredResponseCodec`: **data-only serialization**. Bodies containing objects are rejected at store time, and rows are decoded with `unserialize(..., ['allowed_classes' => false])` — a tampered row can never instantiate a class. (Replaces the 1.0.0 `Response::class`-allowlist approach.)
+- The middleware key is hashed (`sha1`) before storage, so resolved keys of any length fit the `varchar(64)` column.
+- Call `installSchema()` once on plugin activation. *(v1.1.0)* It both creates the table and **migrates** a pre-1.1 table (adds the `reservation_token` column), and throws instead of degrading when DDL fails.
 
 ```sql
 CREATE TABLE wp_better_route_atomic_idempotency (
     idempotency_key varchar(64) NOT NULL,
     fingerprint varchar(64) NOT NULL,
+    reservation_token varchar(64) NOT NULL,
     status varchar(20) NOT NULL,
     response longtext NOT NULL,
     expires_at bigint unsigned NOT NULL,
@@ -96,7 +104,7 @@ CREATE TABLE wp_better_route_atomic_idempotency (
 
 ### `ArrayAtomicIdempotencyStore`
 
-In-memory store for tests and non-production local use. State does not persist between requests.
+In-memory store **for tests only**. State does not persist between requests. *(v1.1.0)* Implements the same lease-token protocol as the wpdb store so tests exercise production semantics.
 
 ## Custom store contract
 
@@ -109,9 +117,19 @@ interface AtomicIdempotencyStoreInterface
 }
 ```
 
-`AtomicIdempotencyRecord` carries one of `RESERVED`, `IN_PROGRESS`, `REPLAY`, `CONFLICT`. The middleware uses these states to decide whether to run the handler, replay, or throw.
+*(v1.1.0)* Prefer implementing the lease-aware extension — the middleware detects it and passes the reservation token through:
 
-When implementing a custom backend (Redis, Memcached, external service), the only hard requirement is that `reserve()` is **atomic** — only one caller may receive `RESERVED` for a given `(key, fingerprint)` pair while a record is open. Use `SET NX` / `INSERT … ON CONFLICT DO NOTHING` / equivalent.
+```php
+interface LeaseAwareAtomicIdempotencyStoreInterface extends AtomicIdempotencyStoreInterface
+{
+    public function completeReservation(string $key, string $fingerprint, string $reservationToken, mixed $response, int $ttlSeconds): void;
+    public function releaseReservation(string $key, string $fingerprint, string $reservationToken): void;
+}
+```
+
+`AtomicIdempotencyRecord` carries one of `RESERVED`, `IN_PROGRESS`, `REPLAY`, `CONFLICT`, plus *(v1.1.0)* the `reservationToken` issued to the reserving request. The middleware uses these states to decide whether to run the handler, replay, or throw.
+
+When implementing a custom backend (Redis, Memcached, external service), the hard requirements are that `reserve()` is **atomic** — only one caller may receive `RESERVED` for a given `(key, fingerprint)` pair while a record is open (`SET NX` / `INSERT … ON CONFLICT DO NOTHING` / equivalent) — and that complete/release verify the reservation token before mutating the record.
 
 ## Combining with other middleware
 
@@ -132,11 +150,13 @@ The default key resolver already incorporates auth identity, so authenticated re
 - Using `IdempotencyMiddleware` for charges or notifications — it does not block concurrent execution.
 - Setting `ttlSeconds` shorter than the client retry window — late retries miss the replay and re-execute.
 - Forgetting `installSchema()` on activation — the store throws on first reserve.
-- `releaseOnThrowable=false` combined with non-deterministic handler errors — the key is permanently consumed.
+- Setting `releaseOnThrowable=true` on a handler that can fail *after* the side effect happened — the retry re-executes the side effect. Keep the default (`false`) unless failures are guaranteed side-effect-free.
+- Expecting a failed request to be retryable immediately with the same key — since v1.1.0 the reservation is held until TTL expiry by default; clients retrying a failure should expect `409 idempotency_in_progress` until then.
 
 ## Validation checklist
 
 - two concurrent requests with the same key and fingerprint never both run the handler;
 - the same key with a different payload returns `409 idempotency_conflict`;
 - the replay carries `Idempotency-Replayed: true`;
-- handler exceptions release the reservation when `releaseOnThrowable=true`.
+- a handler exception keeps the reservation (default) — the same key returns `409 idempotency_in_progress` until TTL expiry;
+- with `releaseOnThrowable=true`, a handler exception releases the reservation for immediate retry.

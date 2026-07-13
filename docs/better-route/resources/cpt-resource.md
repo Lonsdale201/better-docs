@@ -36,6 +36,26 @@ The raw `policy([...])` form is still supported when finer-grained control is ne
 - If `status` filter is omitted, default status filter is applied
 - `cptVisibilityPolicy(callable)` can further restrict row-level visibility
 
+### Fail-closed visibility (v1.1.0)
+
+Reads now **fail closed** when visibility data is missing or restricted:
+
+- an item with a missing/unreadable `status` is hidden (previously an absent status could slip through)
+- posts of a non-publicly-viewable post type are hidden
+- **password-protected posts are hidden** unless the current user passes `current_user_can('read_post', $id)`; list queries additionally exclude them at the query level (`has_password => false`)
+
+### Custom visibility callbacks and pagination (v1.1.0)
+
+A `cptVisibilityPolicy()` callback is arbitrary PHP — it cannot be pushed down into `WP_Query`. To keep `meta.total` and pagination truthful, the Resource layer **scans all matching repository pages**, applies the callback item by item, and only then slices the requested page. Totals and page counts describe the *visible* result set, but the cost is proportional to the full match count — for large datasets, express visibility as a query-level filter (declared `filters()` / repository conditions) instead of a per-item callback.
+
+### Reserved query arguments (v1.1.0)
+
+Invariant `WP_Query` arguments can no longer be overridden through declared filters. Registering any of `post_type`, `posts_per_page`, `paged`, `no_found_rows`, `fields`, `orderby`, `order`, `has_password`, `suppress_filters`, `perm` as a filter name throws an `InvalidArgumentException` at registration time.
+
+### Deterministic ordering (v1.1.0)
+
+List ordering always appends an `ID` tie-breaker (default sort: `date`), so rows with identical sort values no longer swap places between pages.
+
 ## Scenario: keep drafts hidden from public API
 
 - Set `cptVisibleStatuses(['publish'])`
@@ -56,6 +76,7 @@ CPT writes are validated against WordPress capabilities for publish, status tran
 - Exposing draft/private without explicit decision
 - Forgetting to set `deleteMode('trash')` when the UX expects WP-style restore
 - Granting `update` via policy but expecting publish/author changes without the underlying WP capability
+- Using `cptVisibilityPolicy()` for a condition that could be a declared filter — the full-scan cost on large post types is avoidable *(v1.1.0)*
 
 ## Validation checklist
 

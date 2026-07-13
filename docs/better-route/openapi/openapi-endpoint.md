@@ -27,7 +27,7 @@ OpenApiRouteRegistrar::register(
     ]),
     options: [
         'title' => 'better-route API',
-        'version' => 'v0.4.0',
+        'version' => 'v1.1.0',
         'serverUrl' => '/wp-json',
         // 'permissionCallback' => static fn (): bool => true, // uncomment for public access
     ]

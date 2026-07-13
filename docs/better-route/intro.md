@@ -7,14 +7,14 @@ sidebar_position: 1
 
 ## Status
 
-- Baseline documentation target: `v1.0.0`
-- Latest release: [`v1.0.0`](release-notes/v1.0.0)
-- Previous release: [`v0.6.0`](release-notes/v0.6.0)
-- Packagist: published — `composer require better-route/better-route:^1.0`
+- Baseline documentation target: `v1.1.0`
+- Latest release: [`v1.1.0`](release-notes/v1.1.0)
+- Previous release: [`v1.0.0`](release-notes/v1.0.0)
+- Packagist: published — `composer require better-route/better-route:^1.1`
 
 ## What you get
 
-- Fluent router on top of `register_rest_route()`, with explicit `OPTIONS` route support for preflight
+- Fluent router on top of `register_rest_route()`, deny-by-default route intent for every HTTP method *(v1.1.0)*, and a WordPress CORS bridge that answers preflight before dispatch *(v1.1.0)*
 - Middleware pipeline with deterministic order: `global -> group -> route`
 - Resource DSL for CPT and custom table endpoints, with write-validation schemas, field-level policies, and `ResourcePolicy` / `OwnedResourcePolicy` presets
 - Strict query contract (`unknown params => 400`)
@@ -23,6 +23,7 @@ sidebar_position: 1
 - Identity primitives *(v0.6.0)*: `Rs256JwksJwtVerifier` for OIDC providers (RS256/ES256), `HmacSignatureMiddleware` for signed webhooks, `SingleUseTokenMiddleware` for OAuth codes / magic links, `Crypto` helper for tokens and constant-time compare
 - Network primitives *(v0.6.0)*: `TrustedProxyClientIpResolver` and `IpAllowlistMiddleware` with IPv4/IPv6 CIDR matching
 - Public-client primitives *(v0.5.0)*: `CorsMiddleware` / `CorsPolicy`, `AtomicIdempotencyMiddleware` with `wpdb` reservation store, `OwnershipGuardMiddleware`, and `AuditEnricherMiddleware`
+- Write-safety hardening *(v1.1.0)*: lease-aware atomic idempotency store with automatic schema install, data-only stored-response codec, and a MySQL advisory-lock critical section for optimistic locking
 - OpenAPI MVP exporter with security scheme support, `strictSchemas` mode, and optional `openapi.json` endpoint (admin-only by default)
 - WooCommerce integration: Orders, Products, Customers, Coupons with full CRUD, query parsing, HPOS guard, capability-checked writes, protected meta keys, configurable `deleteMode`, and pre-built OpenAPI component schemas
 

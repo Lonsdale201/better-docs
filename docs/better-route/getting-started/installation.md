@@ -14,7 +14,7 @@ title: Installation
 As of v1.0.0 the package is published on [Packagist](https://packagist.org/packages/better-route/better-route) — install it directly, no repository entry needed:
 
 ```bash
-composer require better-route/better-route:^1.0
+composer require better-route/better-route:^1.1
 ```
 
 Or in `composer.json`:
@@ -22,7 +22,7 @@ Or in `composer.json`:
 ```json
 {
   "require": {
-    "better-route/better-route": "^1.0"
+    "better-route/better-route": "^1.1"
   }
 }
 ```
