@@ -43,7 +43,7 @@ $idempotency = new IdempotencyMiddleware(
 
 Cross-database table names (containing `.`) are rejected at the storage boundary.
 
-**Since 1.0.0**, `WpdbIdempotencyStore` restricts `unserialize()` of the cached response to the library's own `Response` class (`['allowed_classes' => [Response::class]]`), as object-injection defense-in-depth — a tampered row cannot instantiate arbitrary classes. (`WpdbAtomicIdempotencyStore` goes further since v1.1.0 — see [Atomic Idempotency](atomic-idempotency).)
+`WpdbIdempotencyStore` retains its `Response::class` deserialization allowlist. Since 1.1.0, classic middleware normalizes `WP_REST_Response` through `StoredResponseCodec`, but does not use the atomic store's data-only encoder. Return arrays/scalars or supported response envelopes, not arbitrary domain objects. The [atomic wpdb store](atomic-idempotency) uses data-only encoding and `allowed_classes => false`.
 
 ## How it works
 
@@ -62,6 +62,8 @@ Replayed `Response` gets header:
 
 ## Scenario: payment/order create endpoint
 
+Use [atomic idempotency](atomic-idempotency) for these side effects; classic replay alone does not prevent concurrent duplicate execution.
+
 - Require idempotency key for `POST /orders`
 - TTL aligned to client retry window
 - Combine with optimistic locking for updates
@@ -77,3 +79,11 @@ Replayed `Response` gets header:
 - second identical request does not call handler
 - conflicting payload returns `409`
 - replayed response has marker header
+
+## Request scope and migration (1.1.1)
+
+The route component in the default key and fingerprint contains the router namespace, template, concrete request path and separately captured URL parameters. Identity and canonical payload parameters remain scoped; a query/body `id` cannot hide the URL target. Custom key/fingerprint resolvers must preserve equivalent isolation.
+
+Existing default idempotency records cannot safely translate and have no legacy replay fallback. Pause writers/retries, drain requests, reconcile uncertain business operations and retire old retries over the full client retry horizon before switching every worker together. Waiting for TTL alone or clearing records is insufficient. Rollback needs the same coordination; a custom key alone still uses the changed default fingerprint. See [the complete migration procedure](../getting-started/migration#coordinate-idempotent-writers).
+
+After an uncertain failure, reconcile before retrying with any key, even after reservation expiry. Keep business-level deduplication for irreversible effects.

@@ -66,11 +66,11 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `title`
 
 - `type` is create-only. It cannot be changed after creation. Defaults to `simple` when omitted.
 - Boolean fields (`manage_stock`, `virtual`, `downloadable`) accept booleans, integers (0/1), or strings (`"true"`, `"false"`, `"yes"`, `"no"`).
-- `stock_quantity` accepts an integer or `null`.
+- Since 1.1.1, `stock_quantity` accepts a finite number (including negative/fractional values) or `null`, provided Woo's stock normalizer preserves the value.
 
 **Since 1.1.0:**
 
-- The whole payload is validated before persistence: string fields must be strings, `regular_price`/`sale_price` must be empty or a non-negative number, `stock_quantity` must be an integer or `null` (non-integer numerics are rejected instead of being truncated), and boolean fields reject values outside the accepted forms — all with `400 validation_failed`.
+- The whole payload is validated before persistence: string fields must be strings, `regular_price`/`sale_price` must be empty or a non-negative number, `stock_quantity` is validated before setters (see the 1.1.1 stock rules below), and boolean fields reject values outside the accepted forms — all with `400 validation_failed`.
 - List sorting always appends an `ID` tie-breaker, so pagination is deterministic when many products share the same sort value.
 - The `WooProductInput` OpenAPI schema no longer advertises the read-only `price` field, matching runtime behavior.
 
@@ -84,3 +84,7 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `title`
 
 - `deleteMode` (`'force'` default or `'trash'`) on the registrar controls whether `DELETE` permanently removes or trashes the product.
 - Protected meta keys (`_...`) are not returned and not writable by default.
+
+## Stock quantities (1.1.1)
+
+Finite numeric strings are accepted as well as numbers; booleans, non-numeric values and non-finite numbers are rejected. If `wc_stock_amount()` changes a requested value, the write returns `400 validation_failed` instead of silently truncating it. Negative stock and `null` remain valid. Fractional stores must keep the same Woo stock configuration for future reads/writes. OpenAPI stock fields use `number` or `null`.

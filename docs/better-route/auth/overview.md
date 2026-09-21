@@ -21,7 +21,7 @@ Built-in auth middleware provides bridge patterns for WordPress REST routes.
 On success, middleware writes auth context attributes:
 
 - `auth` (provider, userId, subject, scopes)
-- optionally `claims`, `userId`, `user`, `scopes`
+- derived `claims`, `userId`, `user`, `scopes`; since 1.1.1 these are replaced even when null/empty, so stale outer identity fields do not survive
 - `hmac` *(v0.6.0)* — `keyId` and `algorithm` after successful HMAC signature verification. *(v1.1.0)* HMAC verification now also writes the shared `auth` attribute (`provider: 'hmac'`, `subject: <keyId>`), so identity-scoped middleware sees HMAC callers like any other authenticated identity.
 - `singleUseToken` *(v0.6.0)* — issuer-supplied context after a single-use token is consumed
 
@@ -75,3 +75,11 @@ Even with auth middleware, route registration still requires explicit `permissio
 - `401` on missing/invalid credential
 - `403` on missing required scopes
 - expected auth attributes exist in `RequestContext`
+
+## Native user scope (1.1.1)
+
+JWT, Bearer and Application Password middleware bind the mapped WordPress user only while the downstream pipeline executes, then restore the previous user in `finally`. Nested calls and exceptions unwind correctly. A verified JWT/Bearer identity without a positive WP mapping runs downstream as native user `0`.
+
+If a custom `setCurrentUser` callback targets another identity store, supply the appended optional `getCurrentUser` callback for that same store. By default the getter uses `get_current_user_id()` (or `0` outside WordPress); earlier positional constructor arguments are unchanged.
+
+WordPress permission callbacks run before middleware; `protectedByMiddleware()` does not itself authenticate. Later `rest_request_after_callbacks`, `rest_post_dispatch` and `_embed` processing see the restored caller. Use native WordPress request authentication when those phases need an authenticated WP user, or perform protected work inside the pipeline. See [migration](../getting-started/migration#authentication-scope).

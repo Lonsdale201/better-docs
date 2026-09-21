@@ -7,7 +7,8 @@ title: Request, Response, and Errors
 `BetterRoute\Http\RequestContext` carries:
 
 - `requestId`
-- `routePath`
+- `routePath` — registered route template, not the concrete request path
+- `attributes['routeNamespace']` — router namespace supplied since 1.1.1
 - original WP request object
 - internal attributes (`withAttribute()`)
 

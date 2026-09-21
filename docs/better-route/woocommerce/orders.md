@@ -38,7 +38,7 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `total`
 
 ```json
 {
-  "status": "processing",
+  "status": "pending",
   "customer_id": 12,
   "currency": "USD",
   "payment_method": "bacs",
@@ -73,7 +73,7 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `total`
 
 Each line item accepts: `product_id` (required), `variation_id`, `quantity`, `subtotal`, `total`, `meta_data`.
 
-**Since 1.1.0:** line items are validated before anything is persisted — unknown keys return `400 validation_failed` (`field not allowed`), `product_id` must reference an existing product, `quantity` must be a positive integer, and `subtotal`/`total` must be non-negative numbers.
+**Since 1.1.0:** line items are validated before anything is persisted — unknown keys return `400 validation_failed` (`field not allowed`), `product_id` must reference an existing product, `quantity` must be a positive finite number supported by Woo's stock configuration (fractional values supported since 1.1.1), and `subtotal`/`total` must be non-negative numbers.
 
 **Since 1.0.0:** when a line item supplies a `variation_id`, the order is built from the actual variation product (validated to belong to the given `product_id`), so its price, name, and attributes come from the variation — not the parent product. A `variation_id` that does not belong to `product_id` is rejected with `400 validation_failed`.
 
@@ -86,7 +86,7 @@ On update, providing `line_items` replaces all existing items and totals are rec
 **Since 1.1.0:**
 
 - The whole payload is validated **before** persistence: scalar fields (`status`, `currency`, `payment_method`, `payment_method_title`, `customer_note`) must be strings, `set_paid` must be a boolean, and a non-zero `customer_id` must reference an existing user — violations return `400 validation_failed` without touching the order.
-- Create and update run inside a WooCommerce transaction (`wc_transaction_query`): if any part of the write fails, the whole order write is rolled back instead of persisting a half-built order.
+- Create and update use a WooCommerce database transaction (`wc_transaction_query`). A database rollback does not undo emails, webhooks or external effects already triggered by hooks.
 - List sorting always appends an `ID` tie-breaker, so pagination is deterministic when many orders share the same sort value (e.g. `total`).
 
 **Since 1.0.0:**
@@ -97,7 +97,7 @@ On update, providing `line_items` replaces all existing items and totals are rec
 
 ## set_paid
 
-When `set_paid` is `true`, `payment_complete()` is called after save. This triggers WooCommerce stock reduction and status transitions.
+Since 1.1.1, `set_paid: true` calls `payment_complete()` after save on create, and on update only when the order still `needs_payment()`. Repeating the flag on a paid order does not repeat the payment-complete event. Supplying an already-paid status together with the flag is not a guarantee of that event. This administrative flag does not capture money at an external gateway.
 
 ## Address fields
 
@@ -109,9 +109,17 @@ Both `billing` and `shipping` accept: first_name, last_name, company, address_1,
 
 Configurable via `deleteMode` on the registrar:
 
-- `'force'` (default) — permanently deletes the order via `wp_delete_post(..., true)`
+- `'force'` (default) — permanently deletes the order through WooCommerce CRUD (`$order->delete(true)`), respecting its active data store
 - `'trash'` — sends the order to the trash so it can be restored from WP admin
 
 ## Protected meta keys (v0.3.0)
 
 Meta keys starting with `_` (e.g., `_order_total`, `_payment_method_title`) are not returned in responses and are rejected on write by default.
+
+## Totals, status hooks and fractional quantities (1.1.1)
+
+Payment gateways initialize before writes. Item/address changes and tax/total calculations precede the requested status transition, so status hooks see final totals. Billing/shipping-only updates call `calculate_totals(true)` too and can change the amount on an existing paid order.
+
+Quantities accept finite numeric values greater than zero, including numeric strings; booleans, null, non-numeric and non-finite values fail validation. If `wc_stock_amount()` would change the requested value (for example `0.5` to `0`), the write returns `400 validation_failed` before persistence. Keep fractional Woo configuration enabled for subsequent reads as well: Woo normalizes values when loading items. Better Route no longer casts read quantities to integers, but does not bypass that data store.
+
+OpenAPI line quantities use `number`, with `exclusiveMinimum: 0` on input. Review [migration](../getting-started/migration#woocommerce-integration-changes) before deploying to an existing store.
