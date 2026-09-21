@@ -25,6 +25,7 @@ $store = new WpdbAtomicIdempotencyStore();
 
 $router->post('/actions/charge', $handler)
     ->middleware([
+        $auth, // Previously configured authentication/authorization middleware.
         new AtomicIdempotencyMiddleware(
             store: $store,
             ttlSeconds: 900,
@@ -160,3 +161,11 @@ The default key resolver already incorporates auth identity, so authenticated re
 - the replay carries `Idempotency-Replayed: true`;
 - a handler exception keeps the reservation (default) — the same key returns `409 idempotency_in_progress` until TTL expiry;
 - with `releaseOnThrowable=true`, a handler exception releases the reservation for immediate retry.
+
+## Request scope and migration (1.1.1)
+
+The route component in the default key and fingerprint contains the router namespace, template, concrete request path and separately captured URL parameters. Identity and canonical payload parameters remain scoped; a query/body `id` cannot hide the URL target. Custom key/fingerprint resolvers must preserve equivalent isolation.
+
+Existing default idempotency records cannot safely translate and have no legacy replay fallback. Pause writers/retries, drain requests, reconcile uncertain business operations and retire old retries over the full client retry horizon before switching every worker together. Waiting for TTL alone or clearing records is insufficient. Rollback needs the same coordination; a custom key alone still uses the changed default fingerprint. See [the complete migration procedure](../getting-started/migration#coordinate-idempotent-writers).
+
+After an uncertain failure, reconcile before retrying with any key, even after reservation expiry. Keep business-level deduplication for irreversible effects.

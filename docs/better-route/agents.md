@@ -3,10 +3,10 @@ title: AI Agent Skills
 sidebar_position: 99
 ---
 
-This page highlights the most important structured skills an AI agent needs to work with the `better-route` library, aligned with the **v1.1.0** release. See [Release Notes — v1.1.0](release-notes/v1.1.0) for the full changelog and [v1.0.0](release-notes/v1.0.0) for the previous baseline.
+This page highlights the most important structured skills an AI agent needs to work with the `better-route` library, aligned with the **v1.1.1** release. Read [Upgrade to 1.1.1](getting-started/migration) before changing an existing installation and [Release Notes — v1.1.1](release-notes/v1.1.1) for the fixes.
 
 :::info Canonical skills home
-The complete, maintained skill set lives in one place: **[Lonsdale201/wp-agent-skills → better-route](https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route)** — 23 task-scoped skills covering routing, resources, auth, write safety, public clients, OpenAPI, and WooCommerce. This page keeps only the highlights inline; everything else is linked from the [skill index](#full-skill-index) below so the skills are not maintained in two places.
+The public skill set lives in **[Lonsdale201/wp-agent-skills → better-route](https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route)** — 23 task-scoped skills covering routing, resources, auth, write safety, public clients, OpenAPI, and WooCommerce. This page keeps only the highlights inline; everything else is linked from the [skill index](#full-skill-index) below so the skills are not maintained in two places.
 :::
 
 <a className="button button--primary" href="https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route" target="_blank" rel="noopener noreferrer">Browse all skills on GitHub →</a>
@@ -23,7 +23,7 @@ The complete, maintained skill set lives in one place: **[Lonsdale201/wp-agent-s
 
 **Install:**
 ```bash
-composer require better-route/better-route:^1.1
+composer require better-route/better-route:^1.1.1
 ```
 
 Only add a VCS `repositories` entry (pointing at `https://github.com/Lonsdale201/better-route`) if you need to track an unreleased branch or a fork.
@@ -37,7 +37,18 @@ Full version: [br-install-and-migrate](https://github.com/Lonsdale201/wp-agent-s
 
 ---
 
-## Skill: Migrate a project to v1.1.0
+## Skill: Migrate a project to v1.1.1
+
+**When:** Updating any existing installation to 1.1.1.
+
+1. Follow the [coordinated writer/retry rollout and rollback](getting-started/migration#coordinate-idempotent-writers). Old default replay records cannot safely migrate; TTL expiry alone does not retire client retries.
+2. Check auth user restoration after the pipeline, including exceptions, nested calls and later WordPress filters/embedding. An unmapped token must not inherit an ambient WP user.
+3. Review address-only order totals, payment completion and fractional quantity/client schema changes.
+4. Keep the application namespace independent of the Composer version. No Store API endpoints are added.
+
+Full version: [br-install-and-migrate](https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route/br-install-and-migrate)
+
+## Earlier migration: v1.0.0 to v1.1.0
 
 **When:** The user is upgrading from v1.0.0 (or earlier) to v1.1.0.
 
@@ -48,7 +59,7 @@ Full version: [br-install-and-migrate](https://github.com/Lonsdale201/wp-agent-s
 4. Review the write-safety defaults: failed atomic-idempotency requests now stay reserved until TTL (`releaseOnThrowable` defaults to `false`), `ArrayAtomicIdempotencyStore` is tests-only, and optimistic locking runs in a MySQL advisory-lock critical section.
 5. If you configure `maxLifetimeSeconds` on a JWT verifier, ensure the issuer emits **both `iat` and `exp`** — tokens missing either are now rejected.
 6. `WpObjectCacheRateLimiter` now throws without a persistent external object cache — switch to `TransientRateLimiter` on default hosting.
-7. WooCommerce: `'actions' => []` now disables a resource (previously fell back to the full set); the registrar installs a durable wpdb idempotency store by default; strict payload validation rejects unknown nested keys with `400`.
+7. WooCommerce: `'actions' => []` now disables a resource (previously fell back to the full set); when idempotency is enabled, the registrar installs a durable wpdb store unless a custom store is supplied; strict payload validation rejects unknown nested keys with `400`.
 8. Walk the full [v1.1.0 behavior change checklist](release-notes/v1.1.0#behavior-change-checklist). For older upgrades, the v1.0.0 / v0.5.0 / v0.4.0 / v0.3.0 checklists live in their [release notes](release-notes/v1.0.0).
 
 **Verification:**
@@ -72,7 +83,8 @@ Full version: [br-install-and-migrate](https://github.com/Lonsdale201/wp-agent-s
 
 **Example:**
 ```php
-add_action('rest_api_init', function () {
+// Configure these handlers and auth/signature middleware in your plugin first.
+add_action('rest_api_init', function () use ($auth, $signature, $createArticle, $intake) {
     $router = \BetterRoute\BetterRoute::router('myapp', 'v1');
 
     $router->get('/ping', function ($context) {
@@ -84,10 +96,12 @@ add_action('rest_api_init', function () {
         ->permission(static fn () => current_user_can('edit_posts'));
 
     $router->post('/secure/articles', $createArticle)
-        ->protectedByMiddleware('bearerAuth');
+        ->protectedByMiddleware('bearerAuth')
+        ->middleware([$auth]); // Previously configured authentication/authorization middleware.
 
     $router->post('/webhooks/intake', $intake)
-        ->publicRoute();
+        ->publicRoute()
+        ->middleware([$signature]);
 
     $router->register();
 });
@@ -130,6 +144,7 @@ $store = new WpdbAtomicIdempotencyStore();
 
 $router->post('/actions/charge', $handler)
     ->middleware([
+        $auth, // Configure authentication/authorization before replay lookup.
         new AtomicIdempotencyMiddleware(
             store: $store,
             ttlSeconds: 900,
@@ -144,7 +159,7 @@ $router->post('/actions/charge', $handler)
 - Concurrent identical request: `409 idempotency_in_progress`.
 - Later identical request after completion: replays response with `Idempotency-Replayed: true`.
 - Same K, different fingerprint (deep-canonical, `Support\Canonicalizer`): `409 idempotency_conflict`.
-- Handler throws: the reservation is **kept until TTL expiry by default** (`releaseOnThrowable: false` since v1.1.0) so an uncertain side effect cannot run twice; retry deliberately with a new key.
+- Handler throws: the reservation is **kept until TTL expiry by default** (`releaseOnThrowable: false` since v1.1.0) to block immediate retries. Reconcile the business outcome before retrying; neither a new key nor TTL expiry proves duplicate execution is safe.
 - Missing `Idempotency-Key` with `requireKey: true`: `400 idempotency_key_required`. Keys longer than `maxKeyLength` (default 200): `400 idempotency_key_invalid`.
 - `ArrayAtomicIdempotencyStore` is for tests only — use the wpdb store (or your own `LeaseAwareAtomicIdempotencyStoreInterface`) in production.
 

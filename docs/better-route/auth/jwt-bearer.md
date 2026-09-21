@@ -118,3 +118,9 @@ $jwtMiddleware = new JwtAuthMiddleware(
 - malformed token -> `401 invalid_token`
 - scope mismatch -> `403 insufficient_scope`
 - mapped WP user is set when mapper resolves userId
+
+## Native identity lifetime (1.1.1)
+
+The mapped user is active only during the downstream middleware/handler call. The previous user is restored on success, exception and nested calls. Unmapped/non-positive identities run as native WP user `0`. Derived auth attributes replace old values, including empty claims/scopes and null user fields.
+
+Custom `setCurrentUser` adapters should supply the appended optional `getCurrentUser` callable. Later WordPress filters and `_embed` use the restored caller; see [auth scope](overview#native-user-scope-111).

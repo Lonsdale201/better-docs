@@ -8,6 +8,7 @@ const sidebars: SidebarsConfig = {
       label: 'Getting Started',
       items: [
         'better-route/getting-started/installation',
+        'better-route/getting-started/migration',
         'better-route/getting-started/quick-start',
       ],
     },
@@ -129,6 +130,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Release Notes',
       items: [
+        'better-route/release-notes/v1.1.1',
         'better-route/release-notes/v1.1.0',
         'better-route/release-notes/v1.0.0',
         'better-route/release-notes/v0.6.0',

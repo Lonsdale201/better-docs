@@ -67,3 +67,11 @@ $router->middlewareFactory(function (string $class): mixed {
 Resolved identities are emitted as `identity:<sha256 of canonical JSON>` hashes rather than raw `provider:user:id` strings, so identity material does not appear verbatim in cache/transient keys.
 
 Pass an explicit `keyResolver` to keep custom keys.
+
+## Namespace and URL isolation (1.1.1)
+
+`CachingMiddleware` and both idempotency middleware now scope default keys to router namespace, registered template, concrete request route and separately captured URL parameters. Idempotency fingerprints use this scope too. Query/body fields that shadow a path ID cannot collapse two URL targets into one record. Identity and request parameters remain part of the respective defaults.
+
+`RequestContext::routePath` stays the template; `attributes['routeNamespace']` carries the router namespace. Keep authentication before cache/replay lookup. Rate-limit buckets, optimistic-lock scope and single-use token semantics are unchanged.
+
+Old response-cache entries become cold; default idempotency records require the [coordinated migration](../getting-started/migration#coordinate-idempotent-writers), including rollback. Custom resolvers own equivalent isolation.

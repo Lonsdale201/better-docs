@@ -56,7 +56,7 @@ $document = $exporter->export($contracts, [
 
 **Since 1.0.0:** monetary fields in these schemas are typed `string` (order `total` / `total_tax`, coupon `amount` / `minimum_amount` / `maximum_amount`, customer `total_spent`; line-item `total` / `subtotal` were already strings), matching how the API serializes money to avoid float drift.
 
-**Since 1.1.0:** the schemas match runtime validation exactly — `WooOrderAddress` / `WooCustomerAddress` declare `additionalProperties: false` (unknown address keys are rejected at runtime), `WooOrderLineItemInput` marks `product_id` as required, and `WooProductInput` no longer lists the read-only `price` field. When the registrar's idempotency option is enabled, write operations automatically document the `Idempotency-Key` header parameter (marked required when `requireKey` is true).
+**Since 1.1.0:** the schemas match runtime validation exactly — `WooOrderAddress` / `WooCustomerAddress` declare `additionalProperties: false` (unknown address keys are rejected at runtime), `WooOrderLineItemInput` marks `product_id` as required, and `WooProductInput` no longer lists the read-only `price` field. When the registrar's idempotency option is enabled, create/update operations automatically document the `Idempotency-Key` header parameter (marked required when `requireKey` is true).
 
 ## Security schemes
 
@@ -97,3 +97,7 @@ Per-route security can be set in route metadata via the `security` key, which ov
 - Every `$ref` in the document resolves to a schema in `components`
 - Custom components merged via `BetterRoute::wooOpenApiComponents()` do not collide with your own schema names
 - Security scheme names used in route `security` metadata match keys in `securitySchemes`
+
+## Quantity schemas (1.1.1)
+
+`WooOrderLineItemInput.quantity` is `number` with `exclusiveMinimum: 0`; response line quantities are `number`. Product input/output `stock_quantity` permits `number` or `null`, including negative stock. Runtime additionally requires Woo's stock normalizer to preserve a requested value. Regenerate typed clients if they previously assumed integers.

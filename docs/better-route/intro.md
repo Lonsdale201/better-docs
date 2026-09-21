@@ -7,10 +7,11 @@ sidebar_position: 1
 
 ## Status
 
-- Baseline documentation target: `v1.1.0`
-- Latest release: [`v1.1.0`](release-notes/v1.1.0)
-- Previous release: [`v1.0.0`](release-notes/v1.0.0)
-- Packagist: published — `composer require better-route/better-route:^1.1`
+- Baseline documentation target: `v1.1.1`
+- Latest release: [`v1.1.1`](release-notes/v1.1.1)
+- Previous release: [`v1.1.0`](release-notes/v1.1.0)
+- Upgrade guidance: [coordinate writers and review integration changes](getting-started/migration)
+- Packagist: published — `composer require better-route/better-route:^1.1.1`
 
 ## What you get
 
