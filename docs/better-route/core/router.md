@@ -57,7 +57,7 @@ add_action('rest_api_init', function (): void {
 
 ## Route intent (v0.4.0, extended in v1.1.0)
 
-**Every** route registered on the raw `Router` without an explicit `permission()` callback is **deny-by-default** at the WordPress permission layer — since v1.1.0 this includes `GET` and `OPTIONS`, not just write methods. An omitted permission is treated as a configuration error: routes fail with `403` until you make intent explicit:
+**Every** route registered on the raw `Router` without an explicit `permission()` callback is **deny-by-default** at the WordPress permission layer — since v1.1.0 this includes `GET` and `OPTIONS`, not just write methods. An omitted permission is treated as a configuration error: WordPress denies anonymous callers with `401` and authenticated callers with `403` until you make intent explicit:
 
 - `->permission(callable)` — supply a WP permission callback (e.g. capability checks).
 - `->protectedByMiddleware(string|array|null $security = null)` — let the request reach the better-route middleware pipeline so an auth middleware (`JwtAuthMiddleware`, `BearerTokenAuthMiddleware`, etc.) can authenticate or short-circuit. Optional argument sets the OpenAPI `security` for the operation.
@@ -82,7 +82,7 @@ Resource-backed endpoints already enforce their own `ResourcePolicy` and are una
 ## Common mistakes
 
 - Class-string middleware requiring constructor args without `middlewareFactory`
-- Missing explicit route intent on any route (returns `403` — write methods since v0.4.0, `GET`/`OPTIONS` since v1.1.0)
+- Missing explicit route intent on any route (denies access — write methods since v0.4.0, `GET`/`OPTIONS` since v1.1.0)
 - Registering outside `rest_api_init` without custom dispatcher (fails loudly since v1.1.0 instead of silently doing nothing)
 
 ## Validation checklist
@@ -94,7 +94,7 @@ Resource-backed endpoints already enforce their own `ResourcePolicy` and are una
 
 ## v1.1.0 behavior changes
 
-- **Deny-by-default for every method.** Raw `Router` routes without an explicit permission callback now fail with `403` regardless of HTTP method — `GET` and `OPTIONS` included. Declare intent with `permission()`, `protectedByMiddleware()`, or `publicRoute()` on every route.
+- **Deny-by-default for every method.** Raw `Router` routes without an explicit permission callback deny access regardless of HTTP method — `GET` and `OPTIONS` included. Declare intent with `permission()`, `protectedByMiddleware()`, or `publicRoute()` on every route.
 - **`group()` unwinds safely after exceptions.** A callback that throws no longer leaves the group prefix/middleware stack corrupted for subsequent registrations.
 - **Handler resolution supports static and union-typed callables.** `[Controller::class, 'method']` with a static method is invoked without instantiation; a union-typed first parameter that accepts `RequestContext` receives the context. Handlers may require at most two parameters, nonexistent classes/methods fail with a clear `InvalidArgumentException`, and handler classes needing constructor arguments are rejected with instructions to pass an instance.
 - **Registration fails loudly.** `WordPressRestDispatcher` throws a `RuntimeException` when `register()` runs outside `rest_api_init` or when WordPress core rejects a route, instead of silently dropping it.

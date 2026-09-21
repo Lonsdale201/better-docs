@@ -54,7 +54,7 @@ Full version: [br-install-and-migrate](https://github.com/Lonsdale201/wp-agent-s
 
 **Steps:**
 1. Bump the constraint to `^1.1` and run `composer update better-route/better-route`.
-2. **Add explicit intent to every raw `Router` route.** `GET` and `OPTIONS` routes without `->permission()`, `->protectedByMiddleware()`, or `->publicRoute()` now return `403` (write methods have denied since v0.4.0). This is the one change that will break previously-working reads.
+2. **Add explicit intent to every raw `Router` route.** `GET` and `OPTIONS` routes without `->permission()`, `->protectedByMiddleware()`, or `->publicRoute()` now deny access (write methods have denied since v0.4.0). WordPress permission denial returns `401` for anonymous callers and `403` for authenticated callers.
 3. **Remove explicit preflight `OPTIONS` routes** (or give the ones you keep explicit intent) — the WordPress CORS bridge answers preflight for every route carrying `CorsMiddleware`, before dispatch.
 4. Review the write-safety defaults: failed atomic-idempotency requests now stay reserved until TTL (`releaseOnThrowable` defaults to `false`), `ArrayAtomicIdempotencyStore` is tests-only, and optimistic locking runs in a MySQL advisory-lock critical section.
 5. If you configure `maxLifetimeSeconds` on a JWT verifier, ensure the issuer emits **both `iat` and `exp`** — tokens missing either are now rejected.
@@ -206,7 +206,7 @@ Routes opt in via `meta(['error_format' => 'oauth_rfc6749'])`. `internal_error` 
 
 **Rules:**
 - For `status >= 500` from non-`ApiException` failures, the message is normalized to `"Unexpected error."` and `details` is empty — internal exception class and message never leak.
-- For `status === 400` from non-`ApiException` failures, `details.exception` still includes the class name (developer aid for misuse).
+- Uncaught `InvalidArgumentException` returns `400 invalid_request` with the generic message `"Invalid request."` and empty details; the exception class and raw message are not exposed.
 - Validation failures (`validation_failed`) include `details.fieldErrors` mapping each invalid field to its error messages.
 - *(v1.1.0)* `WP_Error` details are allowlisted before entering the envelope, and response/error headers are validated against header injection.
 
