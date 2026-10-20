@@ -9,7 +9,7 @@ Documentation for two complementary WordPress PHP libraries:
 
 Composer-first REST contract layer for teams that need stable, versioned APIs. Fluent router on top of `register_rest_route()`, middleware pipeline, Resource DSL for CPTs and custom tables, OpenAPI 3.1 export, and a full WooCommerce integration (Orders / Products / Customers / Coupons).
 
-- Latest release: **v0.6.0**
+- Latest release: **v2.0.0** (PHP 8.3+); **v1.1.3** security maintenance for PHP 8.1/8.2
 - Source: [github.com/Lonsdale201/better-route](https://github.com/Lonsdale201/better-route)
 - Start here: [better-route Documentation](better-route/intro)
 

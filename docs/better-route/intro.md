@@ -7,11 +7,12 @@ sidebar_position: 1
 
 ## Status
 
-- Baseline documentation target: `v1.1.2` (PHP 8.1+)
-- Latest release: [`v1.1.2`](release-notes/v1.1.2)
-- Previous release: [`v1.1.1`](release-notes/v1.1.1)
+- Baseline documentation target: `v2.0.0` (PHP 8.3+)
+- Latest release: [`v2.0.0`](release-notes/v2.0.0)
+- PHP 8.1 security maintenance release: [`v1.1.3`](release-notes/v1.1.3)
 - Upgrade guidance: [coordinate writers and review integration changes](getting-started/migration)
-- Packagist: `composer require better-route/better-route:^1.1.2`
+- Packagist: `composer require better-route/better-route:^2.0`
+- Public consumer skills: [wp-agent-skills/better-route](https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route)
 
 ## What you get
 

@@ -131,6 +131,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Release Notes',
       items: [
+        'better-route/release-notes/v2.0.0',
+        'better-route/release-notes/v1.1.3',
         'better-route/release-notes/v1.1.2',
         'better-route/release-notes/v1.1.1',
         'better-route/release-notes/v1.1.0',

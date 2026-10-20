@@ -3,31 +3,32 @@ title: AI Agent Guidance
 sidebar_position: 99
 ---
 
-This guidance targets Better Route 1.1.2, PHP 8.1+. Read [migration guidance](getting-started/migration)
-before changing an existing integration and [release notes](release-notes/v1.1.2) for the scope.
+This guidance targets Better Route 2.0, PHP 8.3+. Read [migration guidance](getting-started/migration)
+before changing an existing integration and [release notes](release-notes/v2.0.0) for the scope.
 
 ## Resolve the actual version first
 
 ```bash
 composer show better-route/better-route
-composer require better-route/better-route:^1.1.2
+composer require better-route/better-route:^2.0
+composer check-platform-reqs --no-dev
 ```
 
 The Composer package version, application REST namespace and OpenAPI info.version are
-independent. Do not rename an application's routes when updating the library. PHP 8.3-only
-features belong to a separate future development line, not the 1.1.2 release.
+independent. Do not rename an application's routes when updating the library.
+PHP 8.1/8.2 consumers can use the 1.1.3 security patch without the 2.0 runtime change.
 
 ## Skill discovery and freshness
 
-Use the current skills from your configured knowledge provider. Historical public skill
-copies can lag the released source; they are not a substitute for current version checks.
-This page provides public usage guidance and links to maintained documentation rather than
-duplicating a skill catalog. Teams using the private catalog can route by the names below;
-the updated collection contains 24 task-specific skills, including br-woo-analytics.
+Use the portable, public [Better Route skill collection](https://github.com/Lonsdale201/wp-agent-skills/tree/main/better-route).
+It contains 25 task-specific Markdown skills, including Analytics and the PHP 8.3 upgrade.
+Check each skill's tested-version metadata and the installed package version; the format
+works with compatible agent clients without requiring a particular hosted tool service.
 
 | Task | Skills | Documentation |
 |---|---|---|
 | Install, migrate, raw routes | br-install-and-migrate, br-routes | [Install](getting-started/installation), [Migration](getting-started/migration) |
+| PHP 8.3 compatibility | br-php83-upgrade | [2.0 migration](getting-started/migration) |
 | Resource CRUD and permissions | br-resource-cpt, br-resource-table, br-resource-policy, br-write-schema, br-owned-resource-guards | [Resource API](reference/resource-api) |
 | Authentication and network | br-auth-middleware, br-jwks-jwt-auth, br-hmac-signature, br-network-security | [Middleware catalog](reference/middleware-catalog) |
 | Write safety | br-idempotency, br-atomic-idempotency, br-optimistic-locking, br-single-use-token | [Migration](getting-started/migration) |
@@ -45,7 +46,8 @@ the updated collection contains 24 task-specific skills, including br-woo-analyt
   side-effect-free. Native pre-handler errors can retain WordPress's error format.
 - CustomerRolePolicy applies across list/detail/mutations. Request roles only narrow it;
   privileged targets need explicit trusted opt-in and native mutation capabilities still apply.
-- Default customer/coupon DTOs omit metadata. Protect authorization/session keys and coupon
+- Customer list and coupon list/detail defaults omit metadata; customer detail/write
+  responses can include filtered public metadata. Protect authorization/session keys and coupon
   internal metadata; never replace service-specific guards with a generic metadata helper.
 - Coupon state is read-only management information, not checkout eligibility.
 - Analytics is manually registered. Preserve native WP identity, upstream report permissions
@@ -66,6 +68,6 @@ python tests/openapi/validate.py /tmp/better-route-openapi.json
 ```
 
 Run native WP/Woo checks against disposable synthetic data and the host's actual auth/cache
-stack. The library's CI covers PHP 8.1–8.4, plus WP 6.9.4/Woo 10.9.4 runtime checks on PHP
-8.1/8.3 with HPOS/CPT. That is not evidence for every version, external IdP, background
+stack. The 2.0 CI covers PHP 8.3–8.5, plus WP 6.9.4/Woo 10.9.4 runtime checks on PHP
+8.3/8.5 with HPOS/CPT and native ownership checks. That is not evidence for every version, external IdP, background
 import or third-party extension combination. Report uncovered deployment paths explicitly.

@@ -70,7 +70,8 @@ python tests/openapi/validate.py /tmp/better-route-openapi.json
 ```
 
 The library's CI validates four document variants and native synthetic WP/Woo responses;
-it does not prove arbitrary consumer schemas or handlers. Runtime PHP minimum stays 8.1.
+it does not prove arbitrary consumer schemas or handlers. Version 2.0 requires PHP 8.3;
+the 1.1.2 release retains PHP 8.1 compatibility.
 
 - Path regex placeholders `(?P<id>...)` convert to `{id}`
 - Path params are forced `required=true`

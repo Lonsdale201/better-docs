@@ -188,10 +188,10 @@ $middleware->storeToken($code, [
 ], ttlSeconds: 600);
 
 // At /oauth/token: consume the code and issue the access token
-$router->post('/oauth/token', static function ($ctx) {
+$router->post('/oauth/token', static function (\BetterRoute\Http\RequestContext $ctx) {
     $codeContext = $ctx->attributes['singleUseToken'] ?? [];
     // ... issue access/refresh tokens bound to $codeContext ...
-    return Response::ok(['access_token' => '...', 'token_type' => 'Bearer']);
+    return new Response(['access_token' => '...', 'token_type' => 'Bearer']);
 })
     ->middleware([$middleware])
     ->meta(['error_format' => 'oauth_rfc6749'])

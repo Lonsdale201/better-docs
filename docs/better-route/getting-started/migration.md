@@ -1,11 +1,46 @@
 ---
-title: Upgrade to 1.1.2
+title: Upgrade to 2.0
 ---
 
 The Composer package version, your REST namespace (such as `myapp/v1`), and your OpenAPI
 `info.version` are independent. Updating the library does not rename routes.
 
-## 1.1.1 to 1.1.2
+## 1.1.2 / 1.1.3 to 2.0.0
+
+Upgrade every web, CLI, cron and worker runtime to PHP 8.3 before changing the
+Composer constraint from `^1.1` to `^2.0`. Check real platform requirements;
+`config.platform` does not upgrade the server. Restart long-lived workers.
+
+- Resource ownership checks now use the handler's URL capture, so a merged query/body
+  ID cannot select a different authorization object. Older installations need an
+  explicit URL-bound policy until the fix is installed. Lists still need their own
+  authorization and query-level visibility filtering.
+- Request/response, route and Woo query/policy DTOs become readonly classes. Constructors
+  and declared fields remain unchanged, but undeclared dynamic properties now fail.
+  Use `RequestContext::withAttribute()` or separate application state. Referenced
+  objects remain mutable: this is shallow readonly behavior.
+- Sensitive parameter annotations redact annotated Better Route argument frames,
+  including nested helpers. They do not scrub messages, object properties, arbitrary
+  request data or onward core/custom callback arguments. Repeat annotations on custom
+  implementations; interface parameter attributes do not propagate.
+- PHP checks actual method overrides and constant types. Public constant names and
+  values are unchanged. No storage-schema, cache-key or idempotency-key migration is
+  introduced between 1.1.2 and 2.0. Preserve older rollout requirements when skipping
+  versions, as described below.
+
+## 1.1.2 to 1.1.3: PHP 8.1 security maintenance
+
+```bash
+composer require better-route/better-route:^1.1.3
+composer check-platform-reqs
+```
+
+This patch contains the same URL-bound `OwnedResourcePolicy` fix as 2.0 and keeps
+PHP 8.1 compatibility. No constructors, storage schemas or cache/idempotency keys
+change. Deploy the patch to every web and worker process. Custom application policies
+must also select their target from URL captures; list visibility remains separate.
+
+## Earlier upgrade: 1.1.1 to 1.1.2
 
 PHP minimum remains 8.1 and no new database migration is required.
 
@@ -15,7 +50,9 @@ PHP minimum remains 8.1 and no new database migration is required.
 - Customer metadata rejects known authorization/session keys. Coupon metadata rejects native
   internal keys, preventing `meta_data.usage_count` and similar setter bypasses. Use supported
   top-level fields; usage counts remain read-only. Third-party auth metadata needs an allowlist.
-- Default customer/coupon DTOs omit metadata. Coupon DTOs gain read-only state; unfiltered
+- Customer list defaults and coupon list/detail defaults omit metadata. Customer detail
+  and create/update responses can include filtered public metadata by default.
+  Coupon DTOs gain read-only state; unfiltered
   lists remain published coupons including expired/exhausted ones. Management state does not
   determine checkout eligibility.
 - Analytics remains opt-in: manually register reports and retain native user permissions and

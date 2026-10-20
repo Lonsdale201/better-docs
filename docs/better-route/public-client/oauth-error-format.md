@@ -58,14 +58,14 @@ $singleUse = new SingleUseTokenMiddleware(
     tokenSource: static fn ($req): ?string => (string) $req->get_param('code')
 );
 
-$router->post('/oauth/token', static function ($ctx) {
+$router->post('/oauth/token', static function (\BetterRoute\Http\RequestContext $ctx) {
     $codeContext = $ctx->attributes['singleUseToken'] ?? null;
     if ($codeContext === null) {
         throw new ApiException('Authorization code is required.', 400, 'invalid_request');
     }
 
     // ... validate redirect_uri, client_id, etc. ...
-    return Response::ok([
+    return new Response([
         'access_token' => '...',
         'token_type'   => 'Bearer',
         'expires_in'   => 3600,

@@ -67,7 +67,8 @@ The response is `{report,data,meta,comparison?}` without another data envelope. 
 totals/intervals, collections contain items, and meta.totalUnit distinguishes intervals/items.
 Customers/stats only includes readiness metadata. Comparison contains a nonrecursive result.
 
-Money is a decimal string, counts are integers and averages can be fractional. The mapper
+Money, including monetary averages, is a decimal string. Counts are integers and
+non-monetary averages can be fractional numbers. The mapper
 strips unknown extension fields and links. Empty metric maps serialize as objects.
 
 Merge BetterRoute::wooOpenApiComponents() into export options and enable strictSchemas.
@@ -77,7 +78,7 @@ Override the helper operation ID if exposing one report more than once.
 
 ## Tested scope
 
-CI uses WP 6.9.4/Woo 10.9.4, PHP 8.1/8.3 and HPOS/CPT. Synthetic native lookup data covers
+The 2.0 CI uses WP 6.9.4/Woo 10.9.4, PHP 8.3/8.5 and HPOS/CPT. Synthetic native lookup data covers
 all twelve reports, reports-only users, comparison, readiness, projection and identity
 preservation; external JSON Schema validation checks actual responses. Readiness providers
 are request-local fixtures. This does not establish a complete background import, an

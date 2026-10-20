@@ -88,7 +88,9 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 
 ## Notes
 
-- In 1.1.2 metadata is opt-in on list and detail: request `fields=meta_data` explicitly.
+- Customer list defaults omit metadata: select `fields=meta_data` explicitly there.
+  Detail and create/update responses can include filtered public metadata by default.
+  Apply application-specific filtering where third-party metadata needs narrower disclosure.
 - Updates use `WooCustomerUpdateInput`, without username and requiring a non-empty payload.
 
 - `email` is required on create and must be unique. *(v1.1.0)* the create route's OpenAPI schema is `WooCustomerCreateInput`, which marks `email` as required.
