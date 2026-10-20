@@ -7,16 +7,16 @@ title: Installation
 - PHP `^8.1`
 - WordPress REST context (register routes in `rest_api_init`)
 - OpenSSL extension (required for `Rs256JwksJwtVerifier` since v0.6.0)
-- Better Route 1.1.1 was runtime-verified with WordPress 7.1.1 / WooCommerce 11.1.1 / PHP 8.3, including HPOS and legacy order storage. Static analysis uses WooCommerce 10.9 stubs (which cap WordPress stubs at 6.9); stub versions are not the runtime compatibility matrix.
+- Better Route 1.1.2 CI tests PHP 8.1–8.4 and runs WordPress 6.9.4 / WooCommerce 10.9.4 on PHP 8.1/8.3 in HPOS/CPT modes. Static-analysis stubs and this measured runtime matrix do not establish every version combination.
 
-Read [Upgrade to 1.1.1](migration) before updating an existing installation, especially one with idempotent writes.
+Read [Upgrade to 1.1.2](migration) before updating an existing installation. This release retains PHP 8.1 compatibility; the later PHP 8.3 minimum development line is separate.
 
 ## Composer setup
 
 As of v1.0.0 the package is published on [Packagist](https://packagist.org/packages/better-route/better-route) — install it directly, no repository entry needed:
 
 ```bash
-composer require better-route/better-route:^1.1.1
+composer require better-route/better-route:^1.1.2
 ```
 
 Or in `composer.json`:
@@ -24,7 +24,7 @@ Or in `composer.json`:
 ```json
 {
   "require": {
-    "better-route/better-route": "^1.1.1"
+    "better-route/better-route": "^1.1.2"
   }
 }
 ```

@@ -14,6 +14,7 @@ $document = $exporter->export($contracts, [
     'title'      => 'My Store API',
     'version'    => '1.0.0',
     'components' => \BetterRoute\BetterRoute::wooOpenApiComponents(),
+    'strictSchemas' => true,
 ]);
 ```
 
@@ -40,7 +41,8 @@ $document = $exporter->export($contracts, [
 
 **Customers**
 - `WooCustomerAddress` — billing/shipping address fields
-- `WooCustomerInput` — customer update payload
+- `WooCustomerInput` — shared customer creation properties
+- `WooCustomerUpdateInput` — update properties without username; non-empty payload
 - `WooCustomerCreateInput` *(v1.1.0)* — `WooCustomerInput` with `email` required (used by the create route)
 - `WooCustomer` — full customer response
 - `WooCustomerResponse` / `WooCustomerListResponse`
@@ -53,6 +55,13 @@ $document = $exporter->export($contracts, [
 
 **Common**
 - `DeleteResponse` — `{data: {id, deleted}}`
+- `MetaDataInput` — entry-list, key/value-map or null input; native/security key restrictions still apply at runtime
+- Twenty-four Analytics Result/Response components, accessed through `WooAnalyticsOpenApi::meta(report)`; see [Analytics](analytics)
+
+In 1.1.2 projected DTO properties remain optional, even when response envelopes are
+required. Customer/coupon metadata is opt-in. Coupon input accepts native date clearing,
+registered custom discount types and supported coercions. Generic metadata values use a
+boolean true schema. ErrorResponse covers native WordPress and Better Route error shapes.
 
 **Since 1.0.0:** monetary fields in these schemas are typed `string` (order `total` / `total_tax`, coupon `amount` / `minimum_amount` / `maximum_amount`, customer `total_spent`; line-item `total` / `subtotal` were already strings), matching how the API serializes money to avoid float drift.
 

@@ -7,11 +7,11 @@ sidebar_position: 1
 
 ## Status
 
-- Baseline documentation target: `v1.1.1`
-- Latest release: [`v1.1.1`](release-notes/v1.1.1)
-- Previous release: [`v1.1.0`](release-notes/v1.1.0)
+- Baseline documentation target: `v1.1.2` (PHP 8.1+)
+- Latest release: [`v1.1.2`](release-notes/v1.1.2)
+- Previous release: [`v1.1.1`](release-notes/v1.1.1)
 - Upgrade guidance: [coordinate writers and review integration changes](getting-started/migration)
-- Packagist: published — `composer require better-route/better-route:^1.1.1`
+- Packagist: `composer require better-route/better-route:^1.1.2`
 
 ## What you get
 
@@ -25,8 +25,10 @@ sidebar_position: 1
 - Network primitives *(v0.6.0)*: `TrustedProxyClientIpResolver` and `IpAllowlistMiddleware` with IPv4/IPv6 CIDR matching
 - Public-client primitives *(v0.5.0)*: `CorsMiddleware` / `CorsPolicy`, `AtomicIdempotencyMiddleware` with `wpdb` reservation store, `OwnershipGuardMiddleware`, and `AuditEnricherMiddleware`
 - Write-safety hardening *(v1.1.0)*: lease-aware atomic idempotency store with automatic schema install, data-only stored-response codec, and a MySQL advisory-lock critical section for optimistic locking
-- OpenAPI MVP exporter with security scheme support, `strictSchemas` mode, and optional `openapi.json` endpoint (admin-only by default)
+- OpenAPI 3.1 exporter with unique operation IDs, nested local-reference checks, external document/wire validation and a protected `openapi.json` endpoint
 - WooCommerce integration: Orders, Products, Customers, Coupons with full CRUD, query parsing, HPOS guard, capability-checked writes, protected meta keys, configurable `deleteMode`, and pre-built OpenAPI component schemas
+- Configurable customer visibility and coupon management states, with security-sensitive/internal metadata protections
+- Twelve opt-in native [Analytics reports](woocommerce/analytics), including comparison and historical import-readiness checks
 
 ## Who this is for
 

@@ -21,17 +21,29 @@ The Coupons resource provides full CRUD for WooCommerce discount coupons.
 | `fields`  | string | default set       | Comma-separated field names     |
 | `code`    | string | —                 | Exact coupon code match         |
 | `search`  | string | —                 | General text search             |
+| `state` | string | — | active, expiring, expired, exhausted, draft, scheduled |
+| `status` | string | publish/inferred | publish, draft, future |
+| `expiring_days` | int | 30 | Expiring window, 1–3650 days |
 | `sort`    | string | `-date_created`   | Sort field, prefix `-` for DESC |
 | `page`    | int    | 1                 | Page number                     |
 | `per_page`| int    | 20                | Items per page (max 100)        |
 
-Allowed sort fields: `date_created`, `date_modified`, `id`, `code`
+Allowed sort fields: `date_created`, `date_modified`, `id`, `code`, `usage_count`, `date_expires`.
+
+State/status filtering runs before counts and pagination. Draft/scheduled infer draft/future
+when status is omitted; no unconditional publish default is injected. Unfiltered lists still
+contain published expired/exhausted coupons. Missing/zero expiry and duplicate metadata rows
+are handled; expiry equality is active. Legacy local date values use the shop timezone.
+
+The read-only DTO state is active/expired/exhausted/draft/scheduled. Expiring selects active
+coupons within the requested window. These are management views; native WooCommerce still
+decides cart, product, customer and redemption eligibility.
 
 ## Available fields
 
-**List defaults:** id, code, amount, discount_type, date_created, date_expires, usage_count, usage_limit
+**List defaults:** id, code, amount, discount_type, date_created, date_expires, usage_count, usage_limit, state
 
-**All fields:** id, code, amount, discount_type, description, date_created, date_modified, date_expires, usage_count, usage_limit, usage_limit_per_user, limit_usage_to_x_items, individual_use, product_ids, excluded_product_ids, free_shipping, minimum_amount, maximum_amount, email_restrictions, exclude_sale_items, meta_data
+**All fields:** id, code, amount, discount_type, description, date_created, date_modified, date_expires, state, usage_count, usage_limit, usage_limit_per_user, limit_usage_to_x_items, individual_use, product_ids, excluded_product_ids, free_shipping, minimum_amount, maximum_amount, email_restrictions, exclude_sale_items, meta_data
 
 ## Create / Update payload
 
@@ -61,10 +73,14 @@ Allowed sort fields: `date_created`, `date_modified`, `id`, `code`
 ## Notes
 
 - `code` is required on create and must be a non-empty string. *(v1.1.0)* the create route's OpenAPI schema is `WooCouponCreateInput`, which marks `code` as required.
-- `discount_type` accepts: `percent`, `fixed_cart`, `fixed_product`.
+- `discount_type` accepts registered WooCommerce types, including extension-defined types; built-ins include percent, fixed_cart and fixed_product.
 - `product_ids` and `excluded_product_ids` are arrays of integers.
 - `email_restrictions` is an array of email address strings.
-- `date_expires` accepts an ISO date string or `null`.
+- `date_expires` accepts native WooCommerce date strings, or empty string/null to clear.
+- State and usage_count are read-only. Internal coupon metadata keys cannot invoke setters;
+  send supported writable fields at the top level. Public custom metadata remains writable.
+- Default list/detail omit metadata; request it explicitly. Inputs accept entry lists,
+  key/value maps or null, while underscore-prefixed and internal keys are rejected.
 
 **Since 1.1.0:**
 

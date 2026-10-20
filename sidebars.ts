@@ -96,6 +96,7 @@ const sidebars: SidebarsConfig = {
         'better-route/woocommerce/products',
         'better-route/woocommerce/customers',
         'better-route/woocommerce/coupons',
+        'better-route/woocommerce/analytics',
         'better-route/woocommerce/openapi-components',
       ],
     },
@@ -130,6 +131,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Release Notes',
       items: [
+        'better-route/release-notes/v1.1.2',
         'better-route/release-notes/v1.1.1',
         'better-route/release-notes/v1.1.0',
         'better-route/release-notes/v1.0.0',

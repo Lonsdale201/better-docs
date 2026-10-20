@@ -4,6 +4,18 @@ title: OpenAPI Overview
 
 OpenAPI support is metadata-driven. Since `v0.2.0` it includes security scheme support and pre-built WooCommerce domain schemas.
 
+## Release 1.1.2
+
+The exporter now has external OpenAPI 3.1 document validation and native WP/Woo wire-schema
+checks in CI. It rejects duplicate operations/IDs and ambiguous templates, validates security
+requirements/scheme names and checks nested local references in strict mode. Empty schema
+maps and empty paths serialize as objects. PUT and PATCH operation IDs are distinct.
+
+Applications still supply custom schemas and real authentication declarations. Runtime
+checks do not fetch external references or resolve anchors; validate the final application
+document with a full validator. Arbitrary PHP inference and advanced generation are outside
+the exporter scope. [Analytics helpers](../woocommerce/analytics) cover all twelve reports.
+
 ## What is available
 
 - contract aggregation from Router/Resource

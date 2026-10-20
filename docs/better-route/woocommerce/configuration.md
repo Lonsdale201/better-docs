@@ -22,10 +22,9 @@ $router = \BetterRoute\BetterRoute::wooRouteRegistrar()
         'maxPerPage'     => 100,
         'deleteMode'     => 'force', // v0.3.0; 'force' (default) or 'trash'
         'permissions'    => [
-            'orders'    => 'manage_woocommerce',
-            'products'  => 'manage_woocommerce',
-            'customers' => 'manage_woocommerce',
-            'coupons'   => 'manage_woocommerce',
+            'orders.list' => 'manage_woocommerce',
+            'orders.create' => 'manage_woocommerce',
+            'customers.get' => 'manage_woocommerce',
         ],
         'actions' => [
             'orders'    => ['list', 'get', 'create', 'update', 'delete'],
@@ -62,10 +61,21 @@ When true, the HPOS guard returns `503 hpos_required` if HPOS is not enabled. Se
 Default number of items returned by list endpoints when `per_page` is not specified.
 
 **maxPerPage** (int, default `100`)
-Upper cap for `per_page`. Values above this are silently clamped.
+Upper cap for per_page. Values above it return 400; they are not clamped. Native WordPress
+validation can return rest_invalid_param before Better Route's own validation runs.
 
 **permissions** (array)
-Per-resource capability string. The capability is checked via `current_user_can()` before every handler.
+Keys use resource.action, for example orders.list or customers.update. Rules may be a
+capability string, any-of capability list, boolean or callable. Missing rules default to
+manage_woocommerce; invalid/empty rules deny. Native customer mutation capabilities apply too.
+
+**customerRoles** (CustomerRolePolicy, 1.1.2)
+Configures immutable customer-like role visibility and privileged-role exclusions across
+list/detail/mutations. Requests only narrow it; see [Customers](customers).
+
+**operationIdPrefix** (string, default empty, 1.1.2)
+Prefixes generated OpenAPI operation IDs when combining multiple registrations. PUT IDs
+end Update; PATCH IDs end Patch. Choose a distinct prefix for each registration.
 
 **actions** (array)
 Per-resource list of enabled actions. Omit an action to disable its route entirely. Valid values: `list`, `get`, `create`, `update`, `delete`.

@@ -4,7 +4,10 @@ title: Error Codes
 
 ## Common contract
 
-All errors are returned under the better-route envelope unless a route opts into the [OAuth error format](../public-client/oauth-error-format):
+Errors normalized by Better Route use the envelope below unless a route opts into the
+[OAuth error format](../public-client/oauth-error-format). Core authentication, permissions
+and native argument validation may fail before the handler with `{code,message,data}`.
+Clients must support both formats; the OpenAPI ErrorResponse documents their union.
 
 - `error.code`
 - `error.message`
@@ -50,6 +53,9 @@ All errors are returned under the better-route envelope unless a route opts into
 - `internal_error` (`500`)
 - `hpos_required` (`503`) *(v1.0.0, was `409`; WooCommerce HPOS not enabled)*
 - `woo_unavailable` (`503`) *(WooCommerce not available)*
+- `analytics_unavailable` (`503`) — disabled or unavailable native Analytics
+- `analytics_data_not_ready` (`503`) — unknown/running/incomplete/insufficient historical import coverage
+- `analytics_invalid_response` (`502`) — malformed or excessive upstream report data
 
 ## OAuth error format *(v0.6.0)*
 

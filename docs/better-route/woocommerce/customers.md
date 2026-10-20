@@ -4,6 +4,29 @@ title: Customers
 
 The Customers resource provides full CRUD for WooCommerce customers (WordPress users with WC data).
 
+## Visibility policy in 1.1.2
+
+The default role remains customer. Configure customer-like roles with an immutable policy:
+
+```php
+'customerRoles' => new \BetterRoute\Integration\Woo\CustomerRolePolicy(
+    allowedRoles: ['customer', 'subscriber'],
+    excludedRoles: [],
+    allowPrivilegedRoles: false,
+),
+```
+
+The same policy covers list, detail, update and delete. Request `role` accepts a slug,
+CSV or array but can only narrow the configured set. Administrative multi-role users,
+direct privileged capability entries and superadmins are excluded unless explicitly
+enabled in trusted configuration. Native mutation capabilities still apply. Creation
+assigns customer only and cannot create an object excluded by the configured role policy.
+
+SQL restrictions precede pagination/counting. Arbitrary dynamic capability filters can
+still remove objects after SQL counting, so third-party filters can shorten pages.
+Known authorization/session/application-password metadata is blocked on write and omitted
+on read. Custom third-party authorization metadata needs an application allowlist.
+
 ## Endpoints
 
 | Method         | Path                    | Description        |
@@ -65,6 +88,9 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 
 ## Notes
 
+- In 1.1.2 metadata is opt-in on list and detail: request `fields=meta_data` explicitly.
+- Updates use `WooCustomerUpdateInput`, without username and requiring a non-empty payload.
+
 - `email` is required on create and must be unique. *(v1.1.0)* the create route's OpenAPI schema is `WooCustomerCreateInput`, which marks `email` as required.
 - `username` is create-only. It cannot be changed after creation. *(v1.1.0)* sending `username` in an update payload returns `400 validation_failed`; previously it was silently ignored.
 - `password` is write-only. It is never returned in responses.
@@ -83,7 +109,7 @@ Allowed sort fields: `registered_date`, `id`, `email`, `display_name`
 
 ## v0.3.0 restrictions
 
-- **Customer-only**: list/get/update/delete only work on users with the `customer` role. Non-customer users return `404` from `get` and are filtered out of `list`.
+- **Default customer-only policy**: 1.1.2 permits explicitly configured customer-like roles as described above. Out-of-policy users return 404 from detail/mutations and are filtered from lists.
 - **Capability checks** layered on top of the configured `permissions`:
   - `create` requires `create_users`
   - `update` requires `edit_user`

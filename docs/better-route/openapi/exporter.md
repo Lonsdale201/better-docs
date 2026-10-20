@@ -42,6 +42,36 @@ $document = (new OpenApiExporter())->export($contracts, [
 
 ## Important behavior
 
+Since 1.1.2:
+
+- Duplicate method/path, equivalent templates with different parameter names and duplicate
+  operation IDs throw. PUT keeps Update; PATCH uses Patch. Woo operationIdPrefix supports
+  multiple registrations.
+- Balanced named captures become path parameters; unsupported regex outside captures fails.
+  Escape literal dots in WordPress route patterns. Exclude unrepresentable PCRE routes.
+- Query/path/cookie names are case-sensitive; headers merge case-insensitively. Explicit
+  parameters preserve style/explode/allowReserved/examples. WP boolean exclusive bounds
+  convert recursively into numeric JSON Schema bounds. Custom schemas use 2020-12 syntax.
+- summary, description and deprecated are standard operation fields. Inline HEAD/204/304
+  responses omit content. Referenced response definitions remain application-owned.
+- Strict mode follows nested local JSON pointers, not just top-level schema names. Default
+  compatibility mode only fills missing direct schema references with placeholders. External
+  references/anchors are not resolved; full validation remains required.
+- Malformed security requirements and undefined schemes throw. Omission inherits global
+  security; `[]` makes an operation public, `[{}]` adds an anonymous alternative. Local scheme
+  aliases resolve and non-OAuth role arrays are legal in OpenAPI 3.1. Metadata enforces no auth.
+
+Validate serialized output, including the application's custom components:
+
+```bash
+php tests/openapi/export.php /tmp/better-route-openapi.json
+python -m pip install -r tests/openapi/requirements.txt
+python tests/openapi/validate.py /tmp/better-route-openapi.json
+```
+
+The library's CI validates four document variants and native synthetic WP/Woo responses;
+it does not prove arbitrary consumer schemas or handlers. Runtime PHP minimum stays 8.1.
+
 - Path regex placeholders `(?P<id>...)` convert to `{id}`
 - Path params are forced `required=true`
 - Unsupported HTTP methods are skipped

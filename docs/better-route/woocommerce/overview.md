@@ -4,7 +4,9 @@ title: WooCommerce Overview
 
 The WooCommerce integration layer provides a full CRUD REST surface for Orders, Products, Customers, and Coupons on top of the `better-route` router.
 
-These are administrative CRUD endpoints with capability checks, not WooCommerce Store API cart/checkout endpoints. Version 1.1.1 adds no storefront or refund routes.
+These are administrative CRUD endpoints with capability checks, not Store API cart/checkout
+endpoints. Version 1.1.2 also offers opt-in read-only [Analytics reports](analytics), registered
+manually; it adds no storefront or refund routes.
 
 ## Minimal example
 
@@ -32,7 +34,8 @@ This registers all four resource groups under `/wp-json/myplugin/v1/woo/`.
 - *(v1.1.0)* order create/update runs inside a WooCommerce transaction (`wc_transaction_query`), covering database changes; emails/webhooks/external effects are not undone by rollback
 - *(v1.1.0)* deterministic list pagination — every sort gets an `ID` tie-breaker, so rows with equal sort values cannot repeat or vanish across pages
 - *(v1.1.0)* WordPress global REST parameters (`_fields`, `_locale`, `_embed`, `_envelope`, `_jsonp`) are accepted by the unknown-param check instead of returning `400`
-- *(v0.3.0)* customer endpoints restricted to the `customer` role; create/update/delete gated by `create_users` / `edit_user` / `delete_user`
+- CustomerRolePolicy defaults to customer; 1.1.2 permits configured customer-like roles while excluding privileged users. Native mutation capabilities remain mandatory.
+- Coupon management state/status filters and numeric usage/expiry sorts; metadata is opt-in on customer/coupon DTOs.
 - *(v0.3.0)* protected meta keys (`_...`) hidden from output and rejected on write by default
 
 ## Architecture
@@ -43,7 +46,8 @@ Each resource has three layers:
 2. **QueryParser + Query DTO** — validates and normalizes list parameters
 3. **WooRouteRegistrar** — wires services into the router with middleware
 
-`WooRouteRegistrar` is the single entry point. Individual services are not meant to be instantiated directly in route definitions.
+WooRouteRegistrar wires the CRUD groups. WooAnalyticsService is an opt-in separate surface;
+register report-specific routes and helper contracts as described in [Analytics](analytics).
 
 ## Prerequisites
 

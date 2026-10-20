@@ -1,8 +1,37 @@
 ---
-title: Upgrade to 1.1.1
+title: Upgrade to 1.1.2
 ---
 
-Better Route 1.1.1 fixes existing APIs. The Composer package version, your REST namespace (such as `myapp/v1`), and your OpenAPI `info.version` are independent. Updating the package does not rename routes. Review changes to your own response schemas and permissions separately.
+The Composer package version, your REST namespace (such as `myapp/v1`), and your OpenAPI
+`info.version` are independent. Updating the library does not rename routes.
+
+## 1.1.1 to 1.1.2
+
+PHP minimum remains 8.1 and no new database migration is required.
+
+- Customer list/detail/update/delete share `CustomerRolePolicy`. Administrative multi-role,
+  direct-capability and superadmin accounts are excluded unless trusted configuration opts
+  in. Some objects previously visible can now return 404. Request role filters only narrow.
+- Customer metadata rejects known authorization/session keys. Coupon metadata rejects native
+  internal keys, preventing `meta_data.usage_count` and similar setter bypasses. Use supported
+  top-level fields; usage counts remain read-only. Third-party auth metadata needs an allowlist.
+- Default customer/coupon DTOs omit metadata. Coupon DTOs gain read-only state; unfiltered
+  lists remain published coupons including expired/exhausted ones. Management state does not
+  determine checkout eligibility.
+- Analytics remains opt-in: manually register reports and retain native user permissions and
+  historical import coverage. It starts no import and adds no cross-user response cache.
+- Regenerate clients for distinct PUT `...Update` / PATCH `...Patch` operation IDs. Strict
+  OpenAPI checks nested local references; collisions, malformed security and undefined schemes
+  now throw. Supply application schemas and run a full OpenAPI 3.1 validator.
+- Empty Analytics metric maps serialize as objects. Core may return native `{code,message,data}`
+  errors before handlers; clients must support that and Better Route's error envelope.
+
+See [customer policy](../woocommerce/customers), [coupon views](../woocommerce/coupons),
+[Analytics](../woocommerce/analytics) and [OpenAPI export](../openapi/exporter).
+
+## Earlier upgrade: 1.1.0 to 1.1.1
+
+When upgrading from older versions, retain the following writer and identity rollout rules.
 
 ## Coordinate idempotent writers
 
